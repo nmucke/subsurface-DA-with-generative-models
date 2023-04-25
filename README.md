@@ -1,10 +1,8 @@
 # Subsurface DA with Generative Models
 
-This is a simple template for a collection of python scripts with testing (not a package).  
-It uses pip for installation, flake8 for linting, pytest for testing, and coverage for monitoring test coverage.
+This is the codebase for the project "Subsurface DA with Generative Models". It is set up as an installable Python package. 
 
-To use it, first create a virtual environment, and install flake8, pytest, and coverage using pip.  
-The following works on Windows: 
+To use it, first create a virtual environment, and install reqiurements:
 ```
 python3 -m venv .venv
 source .venv/bin/activate
