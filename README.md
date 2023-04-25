@@ -6,14 +6,15 @@ It uses pip for installation, flake8 for linting, pytest for testing, and covera
 To use it, first create a virtual environment, and install flake8, pytest, and coverage using pip.  
 The following works on Windows: 
 ```
-py -3 -m venv .venv
-.venv\scripts\activate
+python3 -m venv .venv
+source .venv/bin/activate
 python -m pip install --upgrade pip
 ```
 
 Then, install the dependencies:
 ```
 pip install -r requirements.txt
+pip install -e .
 ```
 
 When done, deactivate the virtual environment:

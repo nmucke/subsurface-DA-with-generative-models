@@ -19,7 +19,3 @@ dependencies = [
 addopts = [
     "--import-mode=importlib",
 ]
-
-[tool.coverage.run]
-source = ["src"]
-omit = ["*/__init__.py"]
