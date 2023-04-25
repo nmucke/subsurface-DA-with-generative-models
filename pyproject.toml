@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "subsurface-DA-with-generative-models"
+version = "0.1.0"
+license = {file = "LICENSE.txt"}
+description = "A package for data assimilation in subsurface flow using generative models."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+]
+
+[project.urls]
+"Homepage" = "https://github.com/nmucke/subsurface-DA-with-generative-models"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/__init__.py"]
