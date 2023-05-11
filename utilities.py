@@ -16,7 +16,7 @@ from functools import partial
   
 #################################################
 #
-# Load Data Class
+# Load Data XArray
 #
 #################################################
 class ReadXarrayDataset():
