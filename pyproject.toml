@@ -19,3 +19,8 @@ dependencies = [
 addopts = [
     "--import-mode=importlib",
 ]
+
+[tool.coverage.run]
+source = ["ML_for_WDN"]
+omit = ["*/__init__.py"]
+
