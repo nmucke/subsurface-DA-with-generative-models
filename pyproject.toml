@@ -21,6 +21,6 @@ addopts = [
 ]
 
 [tool.coverage.run]
-source = ["ML_for_WDN"]
+source = ["subsurface_DA_with_generative_models"]
 omit = ["*/__init__.py"]
 
