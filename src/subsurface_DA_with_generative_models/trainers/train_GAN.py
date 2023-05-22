@@ -1,0 +1,92 @@
+#from attr import dataclass
+from torch import nn
+import torch
+from tqdm import tqdm
+import pdb
+
+from subsurface_DA_with_generative_models.train_steppers.base_train_stepper import BaseTrainStepper
+
+
+class EarlyStopping:
+    def __call__(self) -> None:
+        num_non_improving_epochs: int = 0
+        best_loss: float = float('inf')
+        patience: int = 10
+
+class MetricLogger():
+    def __call__(self) -> None:
+        total_loss: float = 0
+        num_batches: int = 0
+
+    def update(self, loss: float):
+        self.total_loss += loss
+        self.num_batches += 1
+
+    @property
+    def average_loss(self):
+        return self.total_loss / self.num_batches
+
+
+def train_GAN(
+    train_dataloader: torch.utils.data.DataLoader,
+    num_epochs: int,
+    train_stepper: BaseTrainStepper,
+    val_dataloader: torch.utils.data.DataLoader = None,
+    print_progress: bool = True,
+    patience: int = None,
+    model_save_path: str = None,
+) -> None:
+
+    if patience is not None:
+        early_stopper = EarlyStopping(patience=patience)
+
+    device = train_stepper.device
+
+    for epoch in range(num_epochs):
+
+        if print_progress:
+            pbar = tqdm(
+                    enumerate(train_dataloader),
+                    total=int(len(train_dataloader.dataset)/train_dataloader.batch_size),
+                    bar_format='{l_bar}{bar:10}{r_bar}{bar:-10b}'
+                )
+        else:
+            pbar = enumerate(train_dataloader)
+        
+        generator_loss_logger = MetricLogger()
+        critic_loss_logger = MetricLogger()
+        critic_grad_penalty_logger = MetricLogger()
+
+        for i, (input_data, output_data) in pbar:
+
+            input_data = input_data.to(device)
+            output_data = output_data.to(device)
+
+            loss = train_stepper.train_step(
+                input_data=input_data,
+                output_data=output_data,
+                )
+
+            if ['generator_loss'] is not None:
+                generator_loss_logger.update(
+                    loss=loss['generator_loss'],
+                    )
+            critic_loss_logger.update(
+                loss=loss['critic_loss'],
+                )
+            critic_grad_penalty_logger.update(
+                loss=loss['critic_grad_penalty'],
+                )
+
+            if i % 100 == 0:
+                pbar.set_postfix({
+                    'generator_loss': generator_loss_logger.average_loss,
+                    'critic_loss': critic_loss_logger.average_loss,
+                    'critic_grad_penalty': critic_grad_penalty_logger.average_loss,
+                })
+        
+        train_stepper.step_scheduler()
+        
+    if patience is None:
+        train_stepper.save_model(model_save_path)
+        

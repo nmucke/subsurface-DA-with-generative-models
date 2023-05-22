@@ -1,5 +1,8 @@
 ### General
 
+# Exclude data folder
+data/
+
 # Exclude large files
 *.mp4
 *.tar
