@@ -43,7 +43,34 @@ def get_dense_layers(
 
     return dense_layers
 
-def get_conv_layers(
+class ConvolutionalDownsampleLayer(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: int = 1,
+        scale_factor: int = 2,
+        mode: str = 'nearest'
+    ) -> None:
+        super(ConvolutionalDownsampleLayer, self).__init__()
+
+        self.conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding
+        )
+        self.downsample = nn.MaxPool2d(kernel_size=scale_factor)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.downsample(x)
+        return x
+    
+def get_downsample_conv_layers(
     first_layer_channels: int,
     num_channels: list,
     kernel_size: int = 3,
@@ -56,7 +83,7 @@ def get_conv_layers(
     for i in range(0, len(num_channels)):
         if i == 0:
             conv_layers.append(
-                nn.Conv2d(
+                ConvolutionalDownsampleLayer(
                     in_channels=first_layer_channels,
                     out_channels=num_channels[i],
                     kernel_size=kernel_size,
@@ -66,7 +93,7 @@ def get_conv_layers(
             )
         else:
             conv_layers.append(
-                nn.Conv2d(
+                ConvolutionalDownsampleLayer(
                     in_channels=num_channels[i-1],
                     out_channels=num_channels[i],
                     kernel_size=kernel_size,
@@ -90,6 +117,9 @@ class UpsampleLayer(nn.Module):
     def forward(self, x):
         return nn.functional.interpolate(x, scale_factor=self.scale_factor, mode=self.mode)
     
+
+
+
 class ConvolutionalUpsampleLayer(nn.Module):
     def __init__(
         self,

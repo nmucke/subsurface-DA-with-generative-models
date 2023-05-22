@@ -45,6 +45,9 @@ class Generator(nn.Module):
         self.latent_dim = latent_dim
         self.num_dense_neurons = num_dense_neurons
         self.num_channels = num_channels
+
+        # reverse the order of the channels
+        self.num_upsample_channels = [channels for channels in num_channels[::-1]]
         self.activation = model_utils.get_activation_function(activation)
 
         self.dense_layers = model_utils.get_dense_layers(
@@ -58,8 +61,16 @@ class Generator(nn.Module):
         )
 
         self.upsample_conv_layers = model_utils.get_upsample_conv_layers(
-            first_layer_channels=self.num_channels[0],
+            first_layer_channels=self.num_channels[0],# * 2,
             num_channels=num_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1
+        )
+
+        self.downsample_conv_layers = model_utils.get_downsample_conv_layers(
+            first_layer_channels=6,
+            num_channels=self.num_upsample_channels,
             kernel_size=3,
             stride=1,
             padding=1
@@ -79,6 +90,7 @@ class Generator(nn.Module):
             input_data: torch.Tensor = None
         ):
         
+        
         z = latent_samples
         for dense_layer in self.dense_layers:
             z = self.activation(dense_layer(z))
@@ -86,6 +98,11 @@ class Generator(nn.Module):
         z = self.activation(self.final_dense_layer(z))
 
         z = z.view(-1, self.num_channels[0], 2, 2)
+
+        for downsample_conv_layer in self.downsample_conv_layers:
+            input_data = self.activation(downsample_conv_layer(input_data))
+
+        z = torch.cat((z, input_data), dim=1)
 
         for upsample_conv_layer in self.upsample_conv_layers:
             z = self.activation(upsample_conv_layer(z))
@@ -108,11 +125,11 @@ class Critic(nn.Module):
         self.num_dense_neurons = num_dense_neurons
         self.activation = model_utils.get_activation_function(activation)
 
-        self.conv_layers = model_utils.get_conv_layers(
+        self.conv_layers = model_utils.get_downsample_conv_layers(
             first_layer_channels=first_layer_channels,
             num_channels=num_channels,
             kernel_size=3,
-            stride=2,
+            stride=1,
             padding=1
         )
 
