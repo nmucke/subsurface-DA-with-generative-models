@@ -102,7 +102,7 @@ def train_GAN(
             # Save generated images
             generated_img = train_stepper.model.generator(fixed_z, fixed_input)
             generated_img = generated_img.to('cpu').detach()
-            generated_img = make_grid(output_data[4, 1, 32, 32])
+            generated_img = make_grid(generated_img)
             save_image(generated_img, f'gan_output/generated_images_{epoch}.png')
             
         #train_stepper.step_scheduler()
