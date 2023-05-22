@@ -44,6 +44,7 @@ class Generator(nn.Module):
         
         self.latent_dim = latent_dim
         self.num_dense_neurons = num_dense_neurons
+        self.num_channels = num_channels
         self.activation = model_utils.get_activation_function(activation)
 
         self.dense_layers = model_utils.get_dense_layers(
@@ -51,9 +52,22 @@ class Generator(nn.Module):
             num_dense_neurons=self.num_dense_neurons
         )
 
-        self.trans_conv_layers = model_utils.get_transposed_conv_layers(
-            first_layer_channels=self.num_dense_neurons[-1]//4,
+        self.final_dense_layer = nn.Linear(
+            in_features=self.num_dense_neurons[-1],
+            out_features=num_channels[0]*2*2
+        )
+
+        self.upsample_conv_layers = model_utils.get_upsample_conv_layers(
+            first_layer_channels=self.num_channels[0],
             num_channels=num_channels,
+            kernel_size=3,
+            stride=1,
+            padding=1
+        )
+
+        self.final_conv_layer = nn.Conv2d(
+            in_channels=num_channels[-1],
+            out_channels=1,
             kernel_size=3,
             stride=1,
             padding=1
@@ -64,15 +78,19 @@ class Generator(nn.Module):
             latent_samples: torch.Tensor,
             input_data: torch.Tensor = None
         ):
+        
         z = latent_samples
         for dense_layer in self.dense_layers:
             z = self.activation(dense_layer(z))
+        
+        z = self.activation(self.final_dense_layer(z))
 
-        z = z.view(-1, self.num_dense_neurons[-1]//4, 2, 2)
+        z = z.view(-1, self.num_channels[0], 2, 2)
 
-        for trans_conv_layer in self.trans_conv_layers:
-            z = self.activation(trans_conv_layer(z))
-            pdb.set_trace()
+        for upsample_conv_layer in self.upsample_conv_layers:
+            z = self.activation(upsample_conv_layer(z))
+        
+        z = self.final_conv_layer(z)
                
         return z
 
@@ -85,7 +103,7 @@ class Critic(nn.Module):
     ) -> None:
         super(Critic, self).__init__()
 
-        first_layer_channels = 1
+        first_layer_channels = 7
         
         self.num_dense_neurons = num_dense_neurons
         self.activation = model_utils.get_activation_function(activation)
@@ -114,15 +132,17 @@ class Critic(nn.Module):
             input_data: torch.Tensor = None
         ):
 
-        for conv_layer in self.conv_layers:
-            output_data = self.activation(conv_layer(output_data))
+        data = torch.cat((output_data, input_data), dim=1)
 
-        output_data = output_data.flatten(start_dim=1)
+        for conv_layer in self.conv_layers:
+            data = self.activation(conv_layer(data))
+
+        data = data.flatten(start_dim=1)
 
         for dense_layer in self.dense_layers:
-            output_data = self.activation(dense_layer(output_data))
+            data = self.activation(dense_layer(data))
 
-        output_data = self.output_layer(output_data)
-               
-        return output_data
+        data = self.output_layer(data)
+        
+        return data
     

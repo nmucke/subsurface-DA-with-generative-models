@@ -9,10 +9,10 @@ model_args:
   generator_args:
     latent_dim: 16
     num_dense_neurons: [4, 8, 16, 32]
-    num_channels: [16, 8, 4]
+    num_channels: [32, 16, 8, 4]
     activation: 'gelu'
   critic_args:
-    num_dense_neurons: [4, 8, 16]
+    num_dense_neurons: [16, 8, 4]
     num_channels: [4, 8, 16, 32]
     activation: 'gelu'
   
@@ -26,10 +26,9 @@ optimizer_args:
   #    factor: 0.5
   #    min_lr: 1.0e-6
 
-  
 train_stepper_args:
   gradient_penalty_regu: 1.0e-2
-  num_critic_steps: 5
+  num_critic_steps: 1
 
 trainer_args:
   num_epochs: 100

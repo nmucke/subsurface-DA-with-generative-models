@@ -77,7 +77,47 @@ def get_conv_layers(
     
     return conv_layers
 
-def get_transposed_conv_layers(
+class UpsampleLayer(nn.Module):
+    def __init__(
+        self,
+        scale_factor: int = 2,
+        mode: str = 'nearest'
+    ) -> None:
+        super(UpsampleLayer, self).__init__()
+        self.scale_factor = scale_factor
+        self.mode = mode
+
+    def forward(self, x):
+        return nn.functional.interpolate(x, scale_factor=self.scale_factor, mode=self.mode)
+    
+class ConvolutionalUpsampleLayer(nn.Module):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: int = 1,
+        scale_factor: int = 2,
+        mode: str = 'nearest'
+    ) -> None:
+        super(ConvolutionalUpsampleLayer, self).__init__()
+
+        self.upsample = UpsampleLayer(scale_factor=scale_factor, mode=mode)
+        self.conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=padding
+        )
+
+    def forward(self, x):
+        x = self.upsample(x)
+        x = self.conv(x)
+        return x
+
+def get_upsample_conv_layers(
     first_layer_channels: int,
     num_channels: list,
     kernel_size: int = 3,
@@ -85,22 +125,21 @@ def get_transposed_conv_layers(
     padding: int = 1
     ):
 
-    
     conv_layers = nn.ModuleList()
     for i in range(0, len(num_channels)):
         if i == 0:
             conv_layers.append(
-                nn.ConvTranspose2d(
+                ConvolutionalUpsampleLayer(
                     in_channels=first_layer_channels,
                     out_channels=num_channels[i],
                     kernel_size=kernel_size,
                     stride=stride,
-                    padding=padding
+                    padding=1,
                 )
             )
         else:
             conv_layers.append(
-                nn.ConvTranspose2d(
+                ConvolutionalUpsampleLayer(
                     in_channels=num_channels[i-1],
                     out_channels=num_channels[i],
                     kernel_size=kernel_size,

@@ -23,4 +23,3 @@ addopts = [
 [tool.coverage.run]
 source = ["subsurface_DA_with_generative_models"]
 omit = ["*/__init__.py"]
-

@@ -3,6 +3,9 @@
 # Exclude data folder
 data/
 
+# Exclude gan output
+gan_output/
+
 # Exclude large files
 *.mp4
 *.tar

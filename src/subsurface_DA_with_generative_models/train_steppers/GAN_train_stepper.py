@@ -1,3 +1,4 @@
+import pdb
 import torch
 import torch.nn as nn
 
@@ -36,9 +37,10 @@ class GANTrainStepper(BaseTrainStepper):
         fake_output_data: torch.Tensor,
         input_data: torch.Tensor = None
     ):
+        
         # Random weight term for interpolation between real and fake data
-        alpha = torch.randn((real_output_data.size(0), 1), device=self.device)
-
+        alpha = torch.randn(real_output_data.size(), device=self.device)
+        
         # Get random interpolation between real and fake data
         interpolates = (
             alpha * real_output_data + ((1 - alpha) * fake_output_data)
@@ -79,7 +81,7 @@ class GANTrainStepper(BaseTrainStepper):
 
         # compute critic loss for fake data
         latent_samples = self._sample_latent(
-            shape=(output_data.shape[0], self.model.latent_dim)
+            shape=(input_data.shape[0], self.model.latent_dim)
         )
 
         # compute critic loss for real data
@@ -91,6 +93,7 @@ class GANTrainStepper(BaseTrainStepper):
             latent_samples=latent_samples,
             input_data=input_data
             )
+        
         critic_output_fake_data = self.model.critic(
             output_data=generated_output_data, 
             input_data=input_data
@@ -128,9 +131,9 @@ class GANTrainStepper(BaseTrainStepper):
         latent_samples = self._sample_latent(
             shape=(input_data.shape[0], self.model.latent_dim)
         )
-
+        
         generated_output_data = self.model.generator(
-            latent_sample=latent_samples, 
+            latent_samples=latent_samples, 
             input_data=input_data
             )
         critic_output_data = self.model.critic(

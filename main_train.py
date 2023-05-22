@@ -14,7 +14,6 @@ from subsurface_DA_with_generative_models.train_steppers.GAN_train_stepper impor
 from subsurface_DA_with_generative_models.trainers.train_GAN import train_GAN
 from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset
 
-
 MODEL_TYPE = 'GAN'
 DEVICE = 'cpu'
 SAVE_PATH = 'trained_models/GAN.pt'
@@ -23,23 +22,27 @@ FOLDER = "data/results32"
 INPUT_VARS = ['Por', 'Perm', 'Pressure'] # Porosity, Permeability, Pressure + x, y, time encodings 
 OUTPUT_VARS = ['Pressure']
 
+INPUT_PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/input_preprocessor_32.pkl'
+OUTPUT_PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/output_preprocessor_32.pkl'
+
 config_path = f"configs/{MODEL_TYPE}.yml"
 with open(config_path) as f:
     config = yaml.load(f, Loader=yaml.SafeLoader)
 
-
 def main():
+    
     # Load data
     train_dataset = XarrayDataset(
         folder=FOLDER,
         input_vars=INPUT_VARS,
-        output_vars=OUTPUT_VARS
+        output_vars=OUTPUT_VARS,
+        input_preprocessor_load_path=INPUT_PREPROCESSOR_LOAD_PATH,
+        output_preprocessor_load_path=OUTPUT_PREPROCESSOR_LOAD_PATH,
     )
     train_dataloader = DataLoader(
         train_dataset,
         **config['dataloader_args'],
     )
-
     '''
     # Test the dataloader by loading a few batches
     num_batches_to_check = 1
@@ -50,7 +53,7 @@ def main():
         print(f"Batch {i+1}:")
         print(f"Input data shape: {input_data.shape}")
         print(f"Output data shape: {output_data.shape}")
-    ''' 
+    '''
 
     # Set up model
     model = GAN.GAN(
@@ -77,10 +80,9 @@ def main():
         train_dataloader=train_dataloader,
         train_stepper=train_stepper,
         **config['trainer_args'],
-        model_save_path=SAVE_PATH
+        model_save_path=SAVE_PATH,
+        save_output=True,
     )
-
-
 
 if __name__ == "__main__":
     main()
