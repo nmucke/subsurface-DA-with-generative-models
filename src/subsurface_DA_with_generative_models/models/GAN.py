@@ -61,7 +61,7 @@ class Generator(nn.Module):
         )
 
         self.upsample_conv_layers = model_utils.get_upsample_conv_layers(
-            first_layer_channels=self.num_channels[0],# * 2,
+            first_layer_channels=self.num_channels[0] * 2,
             num_channels=num_channels,
             kernel_size=3,
             stride=1,
