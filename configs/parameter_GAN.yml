@@ -1,0 +1,38 @@
+data_args:
+  file_path: 'data'
+
+dataloader_args:
+  batch_size: 16
+  num_workers: 16
+  shuffle: true
+
+model_args:
+  generator_args:
+    latent_dim: 300
+    num_dense_neurons: [512]
+    num_channels: [512, 256, 128, 64, 32]
+    activation: 'leaky_relu'
+    transposed_conv: False,
+    resnet: False
+  critic_args:
+    num_dense_neurons: [512]
+    num_channels: [32, 64, 128, 256, 512]
+    activation: 'leaky_relu'
+    resnet: False
+  
+optimizer_args:
+  learning_rate: 5.0e-5
+  weight_decay: 1.0e-8
+  scheduler_args: null
+  #  type: 'plateau'
+  #  args:
+  #    patience: 10
+  #    factor: 0.5
+  #    min_lr: 1.0e-6
+
+train_stepper_args:
+  gradient_penalty_regu: 10.0
+  num_critic_steps: 3
+
+trainer_args:
+  num_epochs: 30000

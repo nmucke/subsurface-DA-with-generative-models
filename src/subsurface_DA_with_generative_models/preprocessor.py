@@ -28,7 +28,7 @@ class MinMaxTransformer():
 
         return data        
 
-    def fit_transform_in_batches(self, batch):
+    def fit_in_batches(self, batch):
 
         for i in range(batch.shape[1]):
             batch_min = torch.min(batch[:, i])

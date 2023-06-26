@@ -5,6 +5,7 @@ data/
 
 # Exclude gan output
 gan_output/
+wae_output/
 
 # Exclude large files
 *.mp4

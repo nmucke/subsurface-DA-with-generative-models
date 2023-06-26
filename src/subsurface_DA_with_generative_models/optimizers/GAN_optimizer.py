@@ -5,6 +5,13 @@ import torch.optim as optim
 
 from subsurface_DA_with_generative_models.optimizers.base_optimizer import Optimizer
 from subsurface_DA_with_generative_models.optimizers.optimizer_utils import get_learning_rate_scheduler
+from pickletools import optimize
+import numpy as np
+import torch
+import torch.optim as optim
+
+from subsurface_DA_with_generative_models.optimizers.base_optimizer import Optimizer
+from subsurface_DA_with_generative_models.optimizers.optimizer_utils import get_learning_rate_scheduler
 
 class GANOptimizer(Optimizer):
 
@@ -54,7 +61,7 @@ class GANOptimizer(Optimizer):
         self.critic.step()
 
     def step_scheduler(self, loss: float=None) -> None:
-        if loss is None:
+        if self.args['scheduler_args']['type'] != 'plateau':
             self.generator_scheduler.step()
             self.critic_scheduler.step()
         else:
