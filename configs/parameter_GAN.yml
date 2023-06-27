@@ -8,21 +8,21 @@ dataloader_args:
 
 model_args:
   generator_args:
-    latent_dim: 300
-    num_dense_neurons: [512]
-    num_channels: [512, 256, 128, 64, 32]
+    latent_dim: 250
+    num_dense_neurons: [256]
+    num_channels: [64, 32, 16, 8, 4]
     activation: 'leaky_relu'
-    transposed_conv: False,
+    transposed_conv: True,
     resnet: False
   critic_args:
-    num_dense_neurons: [512]
-    num_channels: [32, 64, 128, 256, 512]
+    num_dense_neurons: [256]
+    num_channels: [4, 8, 16, 32, 64]
     activation: 'leaky_relu'
     resnet: False
   
 optimizer_args:
   learning_rate: 5.0e-5
-  weight_decay: 1.0e-8
+  weight_decay: 1.0e-7
   scheduler_args: null
   #  type: 'plateau'
   #  args:
