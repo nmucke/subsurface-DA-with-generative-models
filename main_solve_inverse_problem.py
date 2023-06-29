@@ -42,6 +42,8 @@ INPUT_PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/input_preprocessor_64.pkl'
 DYNAMIC_INPUT_PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/dynamic_input_preprocessor_64.pkl'
 OUTPUT_PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/output_preprocessor_64.pkl'
 
+MCMC = False
+
 forward_config_path = f"configs/{FORWARD_MODEL_TYPE}.yml"
 with open(forward_config_path) as f:
     forward_model_config = yaml.load(f, Loader=yaml.SafeLoader)
@@ -159,7 +161,7 @@ def main():
     observations = obs_operator(output_data) 
     observations = noise_std*torch.randn_like(observations)
 
-    num_iterations = 2000
+    num_iterations = 2500
 
     # set up distributions
     likelihood_dist = torch.distributions.Normal(
@@ -228,36 +230,42 @@ def main():
 
             best_loss = loss.detach().item()
 
-    # Run MCMC
-    num_MCMC_samples = 2
-    num_burn = 1
-    step_size = .1
-    L = 5
+    if MCMC:
+        # Run MCMC
+        num_MCMC_samples = 2
+        num_burn = 1
+        step_size = .1
+        L = 5
 
-    latent_samples = hamiltorch.sample(
-        log_prob_func = lambda latent_vec: log_posterior(
-            latent_vec=latent_vec,
-            observations=observations,
-            input_data=input_data,
-            dynamic_input_data=dynamic_input_data,
-            output_data=output_data,
-            forward_model=forward_model,
-            parameter_model=parameter_model,
-            likelihood_dist=likelihood_dist,
-            latent_dist=latent_dist,
-            observation_operator=obs_operator,
-        ), 
-        params_init=best_latent_vec.squeeze(0), 
-        num_samples=num_MCMC_samples,
-        step_size=step_size, 
-        num_steps_per_sample=L,
-        sampler=hamiltorch.Sampler.HMC_NUTS,
-        desired_accept_rate=0.3,
-        burn=num_burn,
-        integrator=hamiltorch.Integrator.IMPLICIT,
-        )
+        latent_samples = hamiltorch.sample(
+            log_prob_func = lambda latent_vec: log_posterior(
+                latent_vec=latent_vec,
+                observations=observations,
+                input_data=input_data,
+                dynamic_input_data=dynamic_input_data,
+                output_data=output_data,
+                forward_model=forward_model,
+                parameter_model=parameter_model,
+                likelihood_dist=likelihood_dist,
+                latent_dist=latent_dist,
+                observation_operator=obs_operator,
+            ), 
+            params_init=best_latent_vec.squeeze(0), 
+            num_samples=num_MCMC_samples,
+            step_size=step_size, 
+            num_steps_per_sample=L,
+            sampler=hamiltorch.Sampler.HMC_NUTS,
+            desired_accept_rate=0.3,
+            burn=num_burn,
+            integrator=hamiltorch.Integrator.IMPLICIT,
+            )
 
-    latent_samples = torch.stack(latent_samples)
+        latent_samples = torch.stack(latent_samples)
+        num_samples = num_MCMC_samples-num_burn
+    
+    else:
+        latent_samples = best_latent_vec
+        num_samples = 1
 
     if PARAMETER_MODEL_TYPE == 'WAE':
         generated_params = parameter_model.decoder(latent_samples)
@@ -266,7 +274,7 @@ def main():
 
     generated_params_list = []
     generated_output_list = []
-    for i in range(num_MCMC_samples-num_burn):
+    for i in range(num_samples):
 
         _generated_params = torch.tile(generated_params[i:i+1], (observations.shape[0], 1, 1, 1))
         _generated_params = torch.cat([_generated_params, input_data[:, 2:]], dim=1)
