@@ -59,7 +59,9 @@ class Decoder(nn.Module):
         latent_dim: int,
         num_dense_neurons: list,
         num_channels: int,
-        activation: str = 'gelu'
+        activation: str = 'gelu',
+        transposed_conv: bool = False,
+        resnet: bool = False,
     ) -> None:
         super(Decoder, self).__init__()
         
@@ -87,7 +89,8 @@ class Decoder(nn.Module):
             kernel_size=3,
             stride=1,
             padding=1,
-            resnet=False
+            resnet=resnet,
+            transposed_conv=transposed_conv
         )
 
         self.final_res_layer = model_utils.ConvolutionalUpsampleLayer(#model_utils.ResNetBlockWithUpsample(
@@ -96,6 +99,7 @@ class Decoder(nn.Module):
             kernel_size=3,
             stride=1,
             padding=1,
+            transposed_conv=transposed_conv,
         )
         self.final_conv_layer = nn.Conv2d(
             in_channels=2,
@@ -134,7 +138,8 @@ class Encoder(nn.Module):
         latent_dim: int,
         num_channels: int,
         num_dense_neurons: list,
-        activation: str = 'gelu'
+        activation: str = 'gelu',
+        resnet: bool = False,
     ) -> None:
         super(Encoder, self).__init__()
 
@@ -151,7 +156,7 @@ class Encoder(nn.Module):
             kernel_size=3,
             stride=1,
             padding=1,
-            resnet=False
+            resnet=resnet
         )
 
         self.dense_layers = model_utils.get_dense_layers(

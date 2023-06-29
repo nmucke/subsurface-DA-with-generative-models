@@ -28,7 +28,7 @@ torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
 FORWARD_MODEL_TYPE = 'GAN'
-PARAMETER_MODEL_TYPE = 'parameter_GAN'
+PARAMETER_MODEL_TYPE = 'WAE'
 #PARAMETER_MODEL_TYPE = 'WAE'
 
 DEVICE = 'cuda'
@@ -57,7 +57,7 @@ def observation_operator(
     ):
 
     return input_data#[:, :, x_obs_indices, y_obs_indices]
-    
+
 def log_posterior(
     latent_vec, 
     observations,

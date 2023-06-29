@@ -24,7 +24,7 @@ MODEL_TYPE = 'WAE'
 DEVICE = 'cuda'
 SAVE_PATH = 'trained_models/WAE.pt'
 
-CONTINUE_TRAINING = False
+CONTINUE_TRAINING = True
 
 FOLDER = "data/results64"
 INPUT_VARS = ['Por', 'Perm'] # Porosity, Permeability, Pressure + x, y, time encodings 
@@ -66,7 +66,7 @@ def main():
     model.to(DEVICE)
     
     if CONTINUE_TRAINING:
-        state_dict = torch.load('trained_models/WAE_lr_scheduler.pt', map_location=DEVICE)
+        state_dict = torch.load('trained_models/WAE.pt', map_location=DEVICE)
         model.load_state_dict(state_dict['model_state_dict'])
     
     # Set up optimizer

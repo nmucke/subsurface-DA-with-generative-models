@@ -10,13 +10,13 @@ model_args:
   generator_args:
     latent_dim: 250
     num_dense_neurons: [256]
-    num_channels: [64, 32, 16, 8, 4]
+    num_channels: [128, 64, 32, 16, 8]
     activation: 'leaky_relu'
-    transposed_conv: True,
+    transposed_conv: False,
     resnet: False
   critic_args:
     num_dense_neurons: [256]
-    num_channels: [4, 8, 16, 32, 64]
+    num_channels: [8, 16, 32, 64, 128]
     activation: 'leaky_relu'
     resnet: False
   
