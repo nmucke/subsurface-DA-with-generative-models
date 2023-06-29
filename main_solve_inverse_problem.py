@@ -72,7 +72,11 @@ def log_posterior(
     ):
 
     latent_vec = latent_vec.unsqueeze(0)
-    generated_params = parameter_model.generator(latent_vec)
+
+    if PARAMETER_MODEL_TYPE == 'WAE':
+        generated_params = parameter_model.decoder(latent_vec)
+    elif PARAMETER_MODEL_TYPE == 'parameter_GAN':
+        generated_params = parameter_model.generator(latent_vec)
 
     generated_params = torch.tile(generated_params, (output_data.shape[0], 1, 1, 1))
     generated_params = torch.cat([generated_params, input_data[:, 2:]], dim=1)
@@ -155,7 +159,7 @@ def main():
     observations = obs_operator(output_data) 
     observations = noise_std*torch.randn_like(observations)
 
-    num_iterations = 1000
+    num_iterations = 2000
 
     # set up distributions
     likelihood_dist = torch.distributions.Normal(
@@ -225,8 +229,8 @@ def main():
             best_loss = loss.detach().item()
 
     # Run MCMC
-    num_MCMC_samples = 10000
-    num_burn = 7500
+    num_MCMC_samples = 2
+    num_burn = 1
     step_size = .1
     L = 5
 
@@ -255,7 +259,10 @@ def main():
 
     latent_samples = torch.stack(latent_samples)
 
-    generated_params = parameter_model.generator(latent_samples)
+    if PARAMETER_MODEL_TYPE == 'WAE':
+        generated_params = parameter_model.decoder(latent_samples)
+    elif PARAMETER_MODEL_TYPE == 'parameter_GAN':
+        generated_params = parameter_model.generator(latent_samples)
 
     generated_params_list = []
     generated_output_list = []
