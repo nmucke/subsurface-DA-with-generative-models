@@ -21,9 +21,9 @@ torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
 
-MODEL_TYPE = 'GAN'
+MODEL_TYPE = 'UNet'
 DEVICE = 'cuda'
-SAVE_PATH = 'trained_models/GAN.pt'
+SAVE_PATH = 'trained_models/UNet'
 
 CONTINUE_TRAINING = True
 

@@ -124,8 +124,8 @@ def main():
             decoder_args=paramater_model_config['model_args']['decoder_args'],
             encoder_args=paramater_model_config['model_args']['encoder_args'],
         )
-        state_dict = torch.load('trained_models/WAE.pt', map_location=DEVICE)
-        parameter_model.load_state_dict(state_dict['model_state_dict'])
+        parameter_model = torch.load('trained_models/WAE.pt', map_location=DEVICE)
+        #parameter_model.load_state_dict(state_dict['model_state_dict'])
         parameter_model.to(DEVICE)
         parameter_model.eval()
     elif PARAMETER_MODEL_TYPE == 'parameter_GAN':
