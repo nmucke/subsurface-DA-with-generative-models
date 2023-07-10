@@ -65,14 +65,22 @@ class MinMaxTransformer():
     def transform(self, data):
 
         for i in range(self.num_channels):
+<<<<<<< HEAD
             data[i] = (data[i] - self.min[i]) / (self.max[i] - self.min[i])
+=======
+            data[:, i] = (data[:, i] - self.min[i]) / (self.max[i] - self.min[i])
+>>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
 
         return data        
 
     def inverse_transform(self, data):
 
         for i in range(self.num_channels):
+<<<<<<< HEAD
             data[i] = data[i] * (self.max[i] - self.min[i]) + self.min[i]
+=======
+            data[:, i] = data[:, i] * (self.max[i] - self.min[i]) + self.min[i]
+>>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
 
         return data        
 
