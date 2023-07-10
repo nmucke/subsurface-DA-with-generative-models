@@ -5,27 +5,31 @@ from torch.utils.data import DataLoader
 import pickle
 
 from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset
-from subsurface_DA_with_generative_models.preprocessor import MinMaxTransformer
+from subsurface_DA_with_generative_models.preprocessor import MinMaxTransformer, Preprocessor
 
 FOLDER = "data/results64"
-INPUT_VARS = ['Por', 'Perm'] # Porosity, Permeability, Pressure + x, y, time encodings 
-DYNAMIC_INPUT_VARS = ['p_0_reservoir_P', 'BHP', 'p_0_c_2_rate', 'gas_rate', 'p_0_c_0_rate', 'c_0_rate', 'wat_rate', 'p_0_c_1_rate', 'c_2_rate', 'c_1_rate']
+STATIC_POINT_VARS = None
+STATIC_SPATIAL_VARS = ['Por', 'Perm']
+DYNAMIC_SPATIAL_VARS = ['time_encoding']
+DYNAMIC_POINT_VARS = ['gas_rate']
 OUTPUT_VARS = ['Pressure', 'CO_2']
 
-INPUT_PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/input_preprocessor_64.pkl'
-DYNAMIC_INPUT_PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/dynamic_input_preprocessor_64.pkl'
-OUTPUT_PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/output_preprocessor_64.pkl'
+PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_64.pkl'
+
+parameter_vars = {
+    'static_point': STATIC_POINT_VARS,
+    'static_spatial': STATIC_SPATIAL_VARS,
+    'dynamic_point': DYNAMIC_POINT_VARS,
+    'dynamic_spatial': DYNAMIC_SPATIAL_VARS,
+}
 
 def main():
 
     # Load data
     train_dataset = XarrayDataset(
-        folder=FOLDER,
-        input_vars=INPUT_VARS,
+        data_folder=FOLDER,
+        parameter_vars=parameter_vars,
         output_vars=OUTPUT_VARS,
-        dynamic_input_vars=DYNAMIC_INPUT_VARS,
-        include_spatial_coords=False,
-        include_time=True,
     )
     train_dataloader = DataLoader(
         train_dataset,
@@ -34,44 +38,27 @@ def main():
     )
 
     # Set up preprocessor
-    input_min_max_transformer = MinMaxTransformer(
-        num_channels=3
+    preprocessor = Preprocessor(
+        type='MinMaxTransformer',
+        static_point=False,
+        static_spatial=True,
+        dynamic_point=True,
+        dynamic_spatial=True,
+        output=True
     )
-    dynamic_min_max_transformer = MinMaxTransformer(
-        num_channels=10
-    )
-    output_min_max_transformer = MinMaxTransformer(
-        num_channels=2
-    )
-
-    for i, (input_data, dynamic_input_data, output_data) in enumerate(train_dataloader):
-        
-        input_data = input_data.view(-1, input_data.shape[2], input_data.shape[3], input_data.shape[4])
-
-        dynamic_input_data = dynamic_input_data.view(-1, dynamic_input_data.shape[2], dynamic_input_data.shape[3])
-
-        output_data = output_data.view(-1, output_data.shape[2], output_data.shape[3], output_data.shape[4])
-
-        # Fit the preprocessor
-        input_min_max_transformer.fit_in_batches(input_data)
-        dynamic_min_max_transformer.fit_in_batches(dynamic_input_data)
-        output_min_max_transformer.fit_in_batches(output_data)
     
+    for i, batch in enumerate(train_dataloader):
+        preprocessor.partial_fit(batch) 
+
     print("Preprocessor fitted!")
     
 
     # Save the preprocessor
-    with open(INPUT_PREPROCESSOR_SAVE_PATH, 'wb') as f:
-        pickle.dump(input_min_max_transformer, f)
-
-    with open(DYNAMIC_INPUT_PREPROCESSOR_SAVE_PATH, 'wb') as f:
-        pickle.dump(dynamic_min_max_transformer, f)
-    
-    with open(OUTPUT_PREPROCESSOR_SAVE_PATH, 'wb') as f:
-        pickle.dump(output_min_max_transformer, f)
+    with open(PREPROCESSOR_SAVE_PATH, 'wb') as f:
+        pickle.dump(preprocessor, f)
     
     print("Preprocessor saved!")
-
+    
 if __name__ == "__main__":
     main()
 

@@ -6,6 +6,9 @@ import yaml
 import pdb
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
+from subsurface_DA_with_generative_models.models.forward_models import u_net_GAN
+
+from subsurface_DA_with_generative_models.models.parameter_models import parameter_GAN
 plt.switch_backend('agg')
 
 # set matplotlib font size globally
@@ -15,7 +18,7 @@ from tqdm import tqdm
 import hamiltorch
 
 from subsurface_DA_with_generative_models import routine 
-from subsurface_DA_with_generative_models.models import GAN, WAE, parameter_GAN
+from subsurface_DA_with_generative_models.models.parameter_models import WAE
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
 from subsurface_DA_with_generative_models.train_steppers.GAN_train_stepper import GANTrainStepper
 from subsurface_DA_with_generative_models.trainers.train_GAN import train_GAN
@@ -124,8 +127,8 @@ def main():
             decoder_args=paramater_model_config['model_args']['decoder_args'],
             encoder_args=paramater_model_config['model_args']['encoder_args'],
         )
-        state_dict = torch.load('trained_models/WAE.pt', map_location=DEVICE)
-        parameter_model.load_state_dict(state_dict['model_state_dict'])
+        parameter_model = torch.load('trained_models/WAE.pt', map_location=DEVICE)
+        #parameter_model.load_state_dict(state_dict['model_state_dict'])
         parameter_model.to(DEVICE)
         parameter_model.eval()
     elif PARAMETER_MODEL_TYPE == 'parameter_GAN':
@@ -139,7 +142,7 @@ def main():
         parameter_model.eval()
 
 
-    forward_model = GAN.GAN(
+    forward_model = u_net_GAN.GAN(
         generator_args=forward_model_config['model_args']['generator_args'],
         critic_args=forward_model_config['model_args']['critic_args'],
     )

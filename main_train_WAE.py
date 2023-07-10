@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 from subsurface_DA_with_generative_models import routine 
-from subsurface_DA_with_generative_models.models import  WAE
+from subsurface_DA_with_generative_models.models.parameter_models import  WAE
 from subsurface_DA_with_generative_models.optimizers.WAE_optimizer import WAEOptimizer
 from subsurface_DA_with_generative_models.train_steppers.WAE_train_stepper import WAETrainStepper
 from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset

@@ -7,8 +7,112 @@ from torch.utils.data import Dataset, DataLoader, IterableDataset
 import pickle
 import matplotlib.pyplot as plt
 
+from subsurface_DA_with_generative_models.data_handling.data_utils import (
+    get_static_point_parameters,
+    get_static_spatial_parameters,
+    get_dynamic_point_parameters,
+    get_dynamic_spatial_parameters,
+    get_output_variables,
+    add_meshgrids_to_data,
+)
+from subsurface_DA_with_generative_models.preprocessor import Preprocessor
 
-class XarrayDataset(Dataset):  #deprecated
+    
+class XarrayDataset(Dataset):
+    def __init__(
+        self, 
+        data_folder: str = 'results64',
+        parameter_vars: dict = {
+            'static_point': None,
+            'static_spatial': ['Por', 'Perm'],
+            'dynamic_point': ['gas_rate'],
+            'dynamic_spatial': ['time_encoding'],
+        },
+        output_vars: list = ['Pressure', 'CO2'],
+        preprocessor: Preprocessor =  None
+        ):
+
+        self.data_folder = data_folder
+        self.parameter_vars = parameter_vars
+        self.output_vars = output_vars
+
+        self.file_list = os.listdir(self.data_folder)
+
+        self.preprocessor = preprocessor
+
+    def __len__(self):
+        return len(self.file_list)
+    
+    def __getitem__(self, idx):
+
+        # Load data
+        file_path = os.path.join(self.data_folder, self.file_list[idx])
+        data = xr.open_dataset(file_path)
+
+        # Add space encodings
+        if 'space_encoding' in self.parameter_vars['static_spatial']:
+            data = add_meshgrids_to_data(data, x=True, y=True, time=False)
+
+        # Add time encodings
+        if 'time_encoding' in self.parameter_vars['dynamic_spatial']:
+            data = add_meshgrids_to_data(data, x=False, y=False, time=True)
+
+        # Get parameters
+        static_point_parameters = get_static_point_parameters(
+            data=data, 
+            static_point_vars=self.parameter_vars['static_point']
+        ) # (num_channels, 1)
+
+        static_spatial_parameters = get_static_spatial_parameters(
+            data=data, 
+            static_spatial_vars=self.parameter_vars['static_spatial']
+        ) # (num_channels, num_x, num_y)
+
+        dynamic_point_parameters = get_dynamic_point_parameters(
+            data=data, 
+            dynamic_point_vars=self.parameter_vars['dynamic_point']
+        ) # (num_channels, num_time_steps)
+
+        dynamic_spatial_parameters = get_dynamic_spatial_parameters(
+            data=data, 
+            dynamic_spatial_vars=self.parameter_vars['dynamic_spatial']
+        ) # (num_channels, num_time_steps, num_x, num_y)
+
+        output_variables = get_output_variables(
+            data=data,
+            output_vars=self.output_vars
+        ) # (num_channels, num_time_steps, num_x, num_y)
+        
+        # Preprocess data
+        if self.preprocessor is not None:
+            if self.preprocessor.static_point:
+                static_point_parameters = self.preprocessor.static_point.transform(static_point_parameters)
+            if self.preprocessor.static_spatial:
+                static_spatial_parameters = self.preprocessor.static_spatial.transform(static_spatial_parameters)
+            if self.preprocessor.dynamic_point:
+                dynamic_point_parameters = self.preprocessor.dynamic_point.transform(dynamic_point_parameters)
+            if self.preprocessor.dynamic_spatial:
+                dynamic_spatial_parameters = self.preprocessor.dynamic_spatial.transform(dynamic_spatial_parameters)
+            if self.preprocessor.output:                
+                output_variables = self.preprocessor.output.transform(output_variables)
+
+        # Collect output in dictionary
+        return_dict = {}
+
+        for var_type in self.parameter_vars.keys():
+            if self.parameter_vars[var_type] is not None:
+                return_dict[f'{var_type}_parameters'] = eval(f'{var_type}_parameters')
+        
+        if output_variables is not None:
+            return_dict['output_variables'] = output_variables
+
+        return return_dict
+        
+        
+
+
+'''
+class XarrayDataset_old(Dataset):  #deprecated
     def __init__(
         self, 
         folder, 
@@ -122,3 +226,4 @@ class XarrayDataset(Dataset):  #deprecated
 
 
 
+'''

@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 from subsurface_DA_with_generative_models import routine 
-from subsurface_DA_with_generative_models.models import GAN
-from subsurface_DA_with_generative_models.models import parameter_GAN
+from subsurface_DA_with_generative_models.models.forward_models import u_net_GAN
+from subsurface_DA_with_generative_models.models.parameter_models import parameter_GAN
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
 from subsurface_DA_with_generative_models.train_steppers.GAN_train_stepper import GANTrainStepper
 from subsurface_DA_with_generative_models.train_steppers.parameter_GAN_train_stepper import ParemeterGANTrainStepper

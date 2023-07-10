@@ -39,6 +39,12 @@ class GANOptimizer(Optimizer):
         if self.args['scheduler_args'] is not None:
             self._set_scheduler()
 
+    def load_state_dict(self, state_dict: dict) -> None:
+        self.generator.load_state_dict(state_dict['generator_optimizer_state_dict'])
+        self.critic.load_state_dict(state_dict['critic_optimizer_state_dict'])
+        self.generator_scheduler.load_state_dict(state_dict['generator_scheduler_state_dict'])
+        self.critic_scheduler.load_state_dict(state_dict['critic_scheduler_state_dict'])
+
     def _set_scheduler(self) -> None:
         self.generator_scheduler = get_learning_rate_scheduler(
             type=self.args['scheduler_args']['type'],

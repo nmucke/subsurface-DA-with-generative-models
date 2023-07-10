@@ -16,6 +16,7 @@ wae_output/
 *.ppm
 *.avi
 *.mov
+*.pt
 
 # Exclude MacOS files
 *.DS_Store

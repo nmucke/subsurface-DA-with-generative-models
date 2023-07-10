@@ -1,0 +1,38 @@
+data_args:
+  file_path: 'data'
+
+dataloader_args:
+  batch_size: 4
+  num_workers: 4
+  shuffle: True
+
+model_args:
+  generator_args:
+    num_dense_neurons: [64, 128]
+    num_channels: [8, 16, 32, 64, 128] #[128, 64, 32, 16, 8]
+    activation: 'gelu'
+  critic_args:
+    num_dense_neurons: [128, 64]
+    num_channels: [16, 32, 64, 128]
+    activation: 'gelu'
+  
+optimizer_args:
+  learning_rate: 5.0e-4
+  weight_decay: 1.0e-8
+  scheduler_args:
+    type: 'plateau'
+    args:
+      patience: 10
+      factor: 0.9
+      min_lr: 1.0e-6
+      #warmup: 10
+      #total_steps: 1000
+
+train_stepper_args:
+  gradient_penalty_regu: 10.0
+  num_critic_steps: 1
+  with_GAN_loss: False
+  GAN_regularization: 1.0e-3
+
+trainer_args:
+  num_epochs: 1000

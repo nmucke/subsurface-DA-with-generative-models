@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 
 from subsurface_DA_with_generative_models import routine 
-from subsurface_DA_with_generative_models.models import GAN
+from subsurface_DA_with_generative_models.models.forward_models import u_net_GAN
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
 from subsurface_DA_with_generative_models.train_steppers.GAN_train_stepper import GANTrainStepper
 from subsurface_DA_with_generative_models.trainers.train_GAN import train_GAN
@@ -25,7 +25,7 @@ MODEL_TYPE = 'GAN'
 DEVICE = 'cuda'
 SAVE_PATH = 'trained_models/GAN.pt'
 
-CONTINUE_TRAINING = False
+CONTINUE_TRAINING = True
 
 FOLDER = "data/results64"
 INPUT_VARS = ['Por', 'Perm'] # Porosity, Permeability, Pressure + x, y, time encodings 
@@ -61,7 +61,7 @@ def main():
    
 
     # Set up model
-    model = GAN.GAN(
+    model = u_net_GAN.GAN(
         generator_args=config['model_args']['generator_args'],
         critic_args=config['model_args']['critic_args'],
     )
