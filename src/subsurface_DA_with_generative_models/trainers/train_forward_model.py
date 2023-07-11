@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pdb
 from torchvision.utils import make_grid, save_image
 import matplotlib.pyplot as plt
-plt.switch_backend('TkAgg')
+plt.switch_backend('Agg')
 
 from subsurface_DA_with_generative_models.train_steppers.base_train_stepper import BaseTrainStepper
 

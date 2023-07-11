@@ -1,3 +1,4 @@
+#%%
 import pdb
 import torch
 import torch.nn as nn
@@ -7,14 +8,14 @@ import pickle
 from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset
 from subsurface_DA_with_generative_models.preprocessor import MinMaxTransformer, Preprocessor
 
-FOLDER = "data/results64"
+FOLDER = '/samoa/data/smrserraoseabr/NO-DA/dataset/mixedcontext32x32'
 STATIC_POINT_VARS = None
 STATIC_SPATIAL_VARS = ['Por', 'Perm']
 DYNAMIC_SPATIAL_VARS = ['time_encoding']
 DYNAMIC_POINT_VARS = ['gas_rate']
 OUTPUT_VARS = ['Pressure', 'CO_2']
 
-PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_64.pkl'
+PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_32x32.pkl'
 
 parameter_vars = {
     'static_point': STATIC_POINT_VARS,

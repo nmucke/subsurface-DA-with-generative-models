@@ -15,10 +15,8 @@ from subsurface_DA_with_generative_models.data_handling.data_utils import (
     get_output_variables,
     add_meshgrids_to_data,
 )
-<<<<<<< HEAD
+
 from subsurface_DA_with_generative_models.preprocessor import Preprocessor
-=======
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
 
     
 class XarrayDataset(Dataset):
@@ -32,11 +30,9 @@ class XarrayDataset(Dataset):
             'dynamic_spatial': ['time_encoding'],
         },
         output_vars: list = ['Pressure', 'CO2'],
-<<<<<<< HEAD
+
         preprocessor: Preprocessor =  None
-=======
-        preprocessor = None
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
+
         ):
 
         self.data_folder = data_folder
@@ -47,12 +43,7 @@ class XarrayDataset(Dataset):
 
         self.preprocessor = preprocessor
 
-<<<<<<< HEAD
-=======
 
-
-
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
     def __len__(self):
         return len(self.file_list)
     
@@ -74,7 +65,7 @@ class XarrayDataset(Dataset):
         static_point_parameters = get_static_point_parameters(
             data=data, 
             static_point_vars=self.parameter_vars['static_point']
-<<<<<<< HEAD
+
         ) # (num_channels, 1)
 
         static_spatial_parameters = get_static_spatial_parameters(
@@ -96,25 +87,7 @@ class XarrayDataset(Dataset):
             data=data,
             output_vars=self.output_vars
         ) # (num_channels, num_time_steps, num_x, num_y)
-=======
-        )
-        static_spatial_parameters = get_static_spatial_parameters(
-            data=data, 
-            static_spatial_vars=self.parameter_vars['static_spatial']
-        )
-        dynamic_point_parameters = get_dynamic_point_parameters(
-            data=data, 
-            dynamic_point_vars=self.parameter_vars['dynamic_point']
-        )
-        dynamic_spatial_parameters = get_dynamic_spatial_parameters(
-            data=data, 
-            dynamic_spatial_vars=self.parameter_vars['dynamic_spatial']
-        )
-        output_variables = get_output_variables(
-            data=data,
-            output_vars=self.output_vars
-        )
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
+
         
         # Preprocess data
         if self.preprocessor is not None:
@@ -129,10 +102,7 @@ class XarrayDataset(Dataset):
             if self.preprocessor.output:                
                 output_variables = self.preprocessor.output.transform(output_variables)
 
-<<<<<<< HEAD
-        # Collect output in dictionary
-=======
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
+
         return_dict = {}
 
         for var_type in self.parameter_vars.keys():
@@ -147,10 +117,7 @@ class XarrayDataset(Dataset):
         
 
 
-<<<<<<< HEAD
 '''
-=======
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
 class XarrayDataset_old(Dataset):  #deprecated
     def __init__(
         self, 
