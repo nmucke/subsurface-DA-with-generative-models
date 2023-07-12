@@ -14,27 +14,24 @@ from torch.utils.data import DataLoader
 #plt.switch_backend('Agg')
 
 from subsurface_DA_with_generative_models import routine 
-from subsurface_DA_with_generative_models.models.forward_models import u_net_GAN
-from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
+from subsurface_DA_with_generative_models.models.forward_models import FNO3D
+from subsurface_DA_with_generative_models.optimizers.FNO3D_optimizer import FNO3dOptimizer
 from subsurface_DA_with_generative_models.preprocessor import Preprocessor
-from subsurface_DA_with_generative_models.train_steppers.GAN_train_stepper import GANTrainStepper
-from subsurface_DA_with_generative_models.train_steppers.forward_GAN_train_stepper import ForwardGANTrainStepper
-from subsurface_DA_with_generative_models.trainers.train_GAN import train_GAN
+from subsurface_DA_with_generative_models.train_steppers.forward_FNO3D_train_stepper import FNO3DTrainStepper
+from subsurface_DA_with_generative_models.trainers.train_FNO3D_forward_model import train_forward_model
 from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset
-from subsurface_DA_with_generative_models.trainers.train_forward_model import train_forward_model
 
 
 torch.set_default_dtype(torch.float32)
-
 torch.backends.cuda.enable_flash_sdp(enabled=True)
 torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
+#%%
 
-
-MODEL_TYPE = 'UNetGAN'
+MODEL_TYPE = 'FNO3D'
 DEVICE = 'cuda'
-SAVE_PATH = 'trained_models/UNetGAN'
+SAVE_PATH = 'trained_models/FNO3D'
 
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
@@ -48,7 +45,9 @@ STATIC_POINT_VARS = None
 STATIC_SPATIAL_VARS = ['Por', 'Perm']
 DYNAMIC_SPATIAL_VARS = ['time_encoding']
 DYNAMIC_POINT_VARS = ['gas_rate']
-OUTPUT_VARS = ['Pressure', 'CO_2']
+OUTPUT_VARS = ['Pressure']
+
+
 
 parameter_vars = {
     'static_point': STATIC_POINT_VARS,
@@ -95,19 +94,18 @@ val_dataloader = DataLoader(
 )
 
 # Set up model
-model = u_net_GAN.UNetGAN(
-    generator_args=config['model_args']['generator_args'],
-    critic_args=config['model_args']['critic_args'],
+model = FNO3D.FNO3d(
+    **config['model_args']['fno3d_args'],
 )
 
 model.to(DEVICE)
 
 # Set up optimizer
-optimizer = GANOptimizer(
+optimizer = FNO3dOptimizer(
     model=model,
     args=config['optimizer_args']
 )
-
+#%%
 
 # Load model and optimizer weights if continuing training
 if CONTINUE_TRAINING:
@@ -116,20 +114,23 @@ if CONTINUE_TRAINING:
     optimizer.load_state_dict(state_dict['optimizer_state_dict'])
 
 # Set up train stepper
-if MODEL_TYPE == 'UNetGAN':
-    train_stepper = ForwardGANTrainStepper(
+if MODEL_TYPE == 'FNO3D':
+    train_stepper = FNO3DTrainStepper(
         model=model,
         optimizer=optimizer,
-        model_save_path=SAVE_PATH,
+        device=DEVICE,
+        ##model_save_path=SAVE_PATH,
         **config['train_stepper_args'],
     )
-
+#%%
 # Set up trainer
 train_forward_model(
     train_dataloader=train_dataloader,
     val_dataloader=val_dataloader,
     train_stepper=train_stepper,
-    plot_path='gan_output',
+    plot_path='fno3d_output',
     **config['trainer_args'],
 
 )
+
+# %%
