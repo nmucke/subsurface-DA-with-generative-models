@@ -59,22 +59,16 @@ class MinMaxTransformer():
         self,
     ) -> None:
         super(MinMaxTransformer, self).__init__()
-
-        self.num_channels = None
-    
+        self.num_channels = None    
     def transform(self, data):
-
         for i in range(self.num_channels):
-
             data[i] = (data[i] - self.min[i]) / (self.max[i] - self.min[i])
 
 
         return data        
 
     def inverse_transform(self, data):
-
         for i in range(self.num_channels):
-
             data[i] = data[i] * (self.max[i] - self.min[i]) + self.min[i]
 
 

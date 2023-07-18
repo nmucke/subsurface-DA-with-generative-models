@@ -45,7 +45,7 @@ def train_forward_model(
     num_epochs: int,
     train_stepper: BaseTrainStepper,
     val_dataloader: torch.utils.data.DataLoader = None,
-    print_progress: bool = True,
+    print_progress: bool = False,
     patience: int = None,
     plot_path: str = None,
 ) -> None:    
