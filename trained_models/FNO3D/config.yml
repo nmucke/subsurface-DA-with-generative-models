@@ -1,7 +1,7 @@
 data_args:
   file_path: data
 dataloader_args:
-  batch_size: 1
+  batch_size: 10
   num_workers: 1
   shuffle: true
 model_args:
@@ -22,6 +22,6 @@ optimizer_args:
     type: plateau
   weight_decay: 1.0e-08
 train_stepper_args:
-  model_save_path: models/fno3d
+  model_save_path: trained_models/FNO3D
 trainer_args:
   num_epochs: 1000

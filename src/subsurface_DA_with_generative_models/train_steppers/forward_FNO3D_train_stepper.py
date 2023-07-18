@@ -60,26 +60,37 @@ class LpLoss(object):
 def process_batch(batch: dict) -> dict:
 
     # unpack batch
-    static_spatial_parameters = batch.get('static_spatial_parameters')
-    dynamic_point_parameters = batch.get('dynamic_point_parameters')
-    dynamic_spatial_parameters = batch.get('dynamic_spatial_parameters')
-    output_variables = batch.get('output_variables')
+    static_spatial_parameters = batch.get('static_spatial_parameters') # (num_channels, num_x, num_y)
+    dynamic_point_parameters = batch.get('dynamic_point_parameters')  # (num_channels, num_time_steps)
+    dynamic_spatial_parameters = batch.get('dynamic_spatial_parameters') # (num_channels, num_time_steps, num_x, num_y)
+    output_variables = batch.get('output_variables') # (num_channels, num_time_steps, num_x, num_y)
+    #print the name and the shape of all the tensors
+    #pdb.set_trace()
 
     # get dimensions sizes
-    num_x = static_spatial_parameters.shape[2]
-    num_y = static_spatial_parameters.shape[3]
-    num_time_steps = dynamic_point_parameters.shape[-1]
+    num_channels = static_spatial_parameters.shape[1]
+    num_time_steps = dynamic_point_parameters.shape[2]
+    num_x = dynamic_spatial_parameters.shape[3]
+    num_y = dynamic_spatial_parameters.shape[4]
+
 
     # We need to expand the dimensions of 'static_spatial_parameters' and 'dynamic_point_parameters' to match
     # with 'dynamic_spatial_parameters' for concatenation
-    static_spatial = static_spatial_parameters.unsqueeze(1).expand(-1, num_time_steps, num_x, num_y)
-    dynamic_point = dynamic_point_parameters.unsqueeze(-1).unsqueeze(-1).expand(-1, num_time_steps, num_x, num_y)
+  
+    static_spatial = static_spatial_parameters.unsqueeze(2).repeat(1, 1, num_time_steps, 1, 1)
 
+    dynamic_point = dynamic_point_parameters.unsqueeze(-1).unsqueeze(-1).repeat(1 ,1, 1, num_x, num_y)
+   
     # Concatenating along the first dimension (channels)
-    x = torch.cat([static_spatial, dynamic_point, dynamic_spatial_parameters], dim=0)
+    #print the shape of all the tensors
+
+    x = torch.cat([static_spatial, dynamic_point, dynamic_spatial_parameters], dim=1)
+    #permute the channels from dim 1 to last dim
+
+    x = x.permute(0, 4, 2, 3, 1).permute(0,2,1,3,4)
 
     # y is the output_variables
-    y = output_variables
+    y = output_variables.permute(0, 4, 2, 3, 1).permute(0,2,1,3,4)
 
     return x, y
 
@@ -126,7 +137,7 @@ class FNO3DTrainStepper(BaseTrainStepper):
                 if val_loss < self.best_loss:
                     save_dict = {
                         'model_state_dict': self.model.state_dict(),
-                        'optimizer_state_dict': self.optimizer.state_dict(),    
+                        # 'optimizer_state_dict': self.optimizer.state_dict(),    
                     }
 
                     if self.optimizer.args['scheduler_args'] is not None:
@@ -147,8 +158,9 @@ class FNO3DTrainStepper(BaseTrainStepper):
         self,
         y: torch.Tensor = None,
         y_hat: torch.Tensor = None,   
-    ) -> torch.Tensor:        
-        l2 = self.myloss(y_hat.view(self.batch_size, -1), y.view(self.batch_size, -1))
+    ) -> torch.Tensor:   
+        #print the shape of y and y_hat tensors     
+        l2 = self.myloss(y_hat.reshape(self.batch_size, -1), y.reshape(self.batch_size, -1))
         return l2
                                     
     def train_step(
@@ -165,12 +177,12 @@ class FNO3DTrainStepper(BaseTrainStepper):
                    
         # train 
         self.optimizer.zero_grad()   
-        with autocast():
-            y_hat = self.model(x)           
-            l2_loss = self._compute_loss(y=y, y_hat=y_hat)
-            l2_loss.backward()
-            self.optimizer.step()     
-            mse_loss = F.mse_loss(y_hat, y, reduction='mean')    
+        #with autocast():
+        y_hat = self.model(x)           
+        l2_loss = self._compute_loss(y=y, y_hat=y_hat)
+        l2_loss.backward()
+        self.optimizer.step()     
+        mse_loss = F.mse_loss(y_hat, y, reduction='mean')    
 
         self.train_count += 1       
 
@@ -198,7 +210,7 @@ class FNO3DTrainStepper(BaseTrainStepper):
                     device=self.device,
                 )
                 y_hat = self.model(x)
-                l2_loss = self._compute_loss(y=y, y_hat=y_hat, myloss=self.myloss)
+                l2_loss = self._compute_loss(y=y, y_hat=y_hat)
                 mse_loss = F.mse_loss(y_hat, y, reduction='mean')    
 
                 total_l2_loss += l2_loss.detach().item()
@@ -210,69 +222,68 @@ class FNO3DTrainStepper(BaseTrainStepper):
 
         return total_l2_loss / num_batches
     
-    # def plot(
-    #     self, 
-    #     batch: dict,
-    #     plot_path: str = None,
-    #     ):
-    #     # unpack batch
-    #    x,output_variables = prepare_batch(
-    #             batch=batch,
-    #             device=self.device,
-    #         )
+    def plot(
+        self, 
+        batch: dict,
+        plot_path: str = '',
+            ):
+            x,output_variables = prepare_batch(
+            batch=batch,
+            device=self.device,
+                    )
        
-    #     with torch.no_grad():
-    #         generated_output_data = self.model(x).reshape(output_variables.shape)
+            with torch.no_grad():
+                generated_output_data = self.model(x).reshape(output_variables.shape)
 
-    #     plot_time = -1
-    #     plot_x = 16
-    #     plot_y = 16
+                plot_time = -1
+                plot_x = 16
+                plot_y = 16
 
-    #     plt.figure(figsize=(10, 10))
-    #     plt.subplot(3, 3, 1)
-    #     plt.imshow(generated_output_data[0, 0, plot_time, :, :].cpu().numpy())
-    #     plt.colorbar()
-    #     plt.title('Generated pressure')
+                plt.figure(figsize=(10, 10))
+                plt.subplot(3, 3, 1)
+                plt.imshow(generated_output_data[0, 0, plot_time, :, :].cpu().numpy())
+                plt.colorbar()
+                plt.title('Generated pressure')
 
-    #     plt.subplot(3, 3, 2)
-    #     plt.imshow(output_variables[0, 0, plot_time, :, :].cpu().numpy())
-    #     plt.colorbar()
-    #     plt.title('True pressure')
+                plt.subplot(3, 3, 2)
+                plt.imshow(output_variables[0, 0, plot_time, :, :].cpu().numpy())
+                plt.colorbar()
+                plt.title('True pressure')
 
-    #     plt.subplot(3, 3, 3)
-    #     plt.imshow(np.abs(generated_output_data[0, 0, plot_time, :, :].cpu().numpy() - output_variables[0, 0, plot_time, :, :].cpu().numpy()))
-    #     plt.colorbar()
-    #     plt.title('Pressure Error')
+                plt.subplot(3, 3, 3)
+                plt.imshow(np.abs(generated_output_data[0, 0, plot_time, :, :].cpu().numpy() - output_variables[0, 0, plot_time, :, :].cpu().numpy()))
+                plt.colorbar()
+                plt.title('Pressure Error')
 
-    #     plt.subplot(3, 3, 4)
-    #     plt.imshow(generated_output_data[0, 1, plot_time, :, :].cpu().numpy())
-    #     plt.colorbar()
-    #     plt.title('Generated CO2')
+            # plt.subplot(3, 3, 4)
+            # plt.imshow(generated_output_data[0, 1, plot_time, :, :].cpu().numpy())
+            # plt.colorbar()
+            # plt.title('Generated CO2')
 
-    #     plt.subplot(3, 3, 5)
-    #     plt.imshow(output_variables[0, 1, plot_time, :, :].cpu().numpy())
-    #     plt.colorbar()
-    #     plt.title('True CO2')
+            # plt.subplot(3, 3, 5)
+            # plt.imshow(output_variables[0, 1, plot_time, :, :].cpu().numpy())
+            # plt.colorbar()
+            # plt.title('True CO2')
 
-    #     plt.subplot(3, 3, 6)
-    #     plt.imshow(np.abs(generated_output_data[0, 1, plot_time, :, :].cpu().numpy() - output_variables[0, 1, plot_time, :, :].cpu().numpy()))
-    #     plt.colorbar()
-    #     plt.title('CO2 Error')
+            # plt.subplot(3, 3, 6)
+            # plt.imshow(np.abs(generated_output_data[0, 1, plot_time, :, :].cpu().numpy() - output_variables[0, 1, plot_time, :, :].cpu().numpy()))
+            # plt.colorbar()
+            # plt.title('CO2 Error')
 
-    #     plt.subplot(3, 3, 7)
-    #     plt.plot(generated_output_data[0, 1, :, plot_x, plot_y].cpu().numpy(), label='Generated CO2')
-    #     plt.plot(output_variables[0, 1, :, plot_x, plot_y].cpu().numpy(), label='True CO2')
-    #     plt.legend()
-    #     plt.grid()
-    #     plt.title(f'CO2 at ({plot_x}, {plot_y})')
+            # plt.subplot(3, 3, 7)
+            # plt.plot(generated_output_data[0, 1, :, plot_x, plot_y].cpu().numpy(), label='Generated CO2')
+            # plt.plot(output_variables[0, 1, :, plot_x, plot_y].cpu().numpy(), label='True CO2')
+            # plt.legend()
+            # plt.grid()
+            # plt.title(f'CO2 at ({plot_x}, {plot_y})')
 
-    #     plt.subplot(3, 3, 8)
-    #     plt.plot(generated_output_data[0, 0, :, plot_x, plot_y].cpu().numpy(), label='Generated pressure')
-    #     plt.plot(output_variables[0, 0, :, plot_x, plot_y].cpu().numpy(), label='True pressure')
-    #     plt.legend()
-    #     plt.grid()
-    #     plt.title(f'Pressure at ({plot_x}, {plot_y})')
+                plt.subplot(3, 3, 4)
+                plt.plot(generated_output_data[0, 0, :, plot_x, plot_y].cpu().numpy(), label='Generated pressure')
+                plt.plot(output_variables[0, 0, :, plot_x, plot_y].cpu().numpy(), label='True pressure')
+                plt.legend()
+                plt.grid()
+                plt.title(f'Pressure at ({plot_x}, {plot_y})')
 
-    #     plt.savefig(f'{plot_path}/plot_{self.epoch_count}.png')     
-        
-    #     plt.close()   
+                plt.savefig(f'{plot_path}/plot_{self.epoch_count}.png')     
+                
+                plt.close()   
