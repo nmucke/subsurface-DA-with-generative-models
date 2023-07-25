@@ -1,0 +1,25 @@
+data_args:
+  file_path: data
+dataloader_args:
+  batch_size: 3
+  num_workers: 1
+  shuffle: true
+model_args:
+  input_channels: 6
+  modes1: 16
+  modes2: 16
+  modes3: 16
+  padding: 4
+  width: 64
+optimizer_args:
+  learning_rate: 0.0005
+  scheduler_args:
+    args:
+      factor: 0.9
+      min_lr: 1.0e-06
+      patience: 10
+    type: plateau
+  weight_decay: 1.0e-08
+train_stepper_args: null
+trainer_args:
+  num_epochs: 1000

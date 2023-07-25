@@ -6,10 +6,56 @@ import torch.nn as nn
 import os
 from torch import autocast
 import matplotlib.pyplot as plt
-
-from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
+import torch.nn.functional as F
+from subsurface_DA_with_generative_models.optimizers.FNO3D_optimizer import FNO3dOptimizer
 from subsurface_DA_with_generative_models.plotting_utils import plot_output
 from subsurface_DA_with_generative_models.train_steppers.base_train_stepper import BaseTrainStepper
+
+
+#loss function with rel/abs Lp loss
+class LpLoss(nn.Module):
+    def __init__(self, d=2, p=2, size_average=True, reduction=True):
+        super(LpLoss, self).__init__()
+
+        #Dimension and Lp-norm type are postive
+        assert d > 0 and p > 0
+
+        self.d = d
+        self.p = p
+        self.reduction = reduction
+        self.size_average = size_average
+
+    def abs(self, x, y):
+        num_examples = x.size()[0]
+
+        #Assume uniform mesh
+        h = 1.0 / (x.size()[1] - 1.0)
+
+        all_norms = (h**(self.d/self.p))*torch.norm(x.view(num_examples,-1) - y.view(num_examples,-1), self.p, 1)
+
+        if self.reduction:
+            if self.size_average:
+                return torch.mean(all_norms)
+            else:
+                return torch.sum(all_norms)
+
+        return all_norms
+
+    def rel(self, x, y):
+
+        diff_norms = torch.norm(x - y, self.p, 1)
+        y_norms = torch.norm(y, self.p, 1)
+
+        if self.reduction:
+            if self.size_average:
+                return torch.mean(diff_norms/y_norms)
+            else:
+                return torch.sum(diff_norms/y_norms)
+
+        return diff_norms/y_norms
+
+    def forward(self, x, y):
+        return self.rel(x, y)
 
 def prepare_batch(batch: dict, device: str) -> dict:
 
@@ -40,106 +86,96 @@ def prepare_batch(batch: dict, device: str) -> dict:
         output_variables,
     )
 
-class UNOTrainStepper(BaseTrainStepper):
-
+class FNO3DTrainStepper(BaseTrainStepper):
     def __init__(
         self,
         model: nn.Module,
-        optimizer: GANOptimizer,
+        optimizer: FNO3dOptimizer,        
         model_save_path: str,
-        **kwargs,
+        device: str = 'cuda',
     ) -> None:
 
         self.model = model
         self.optimizer = optimizer
-
-        self.device = model.device
-
-        self.generator_scaler = torch.cuda.amp.GradScaler()
-        self.critic_scaler = torch.cuda.amp.GradScaler()
-
+        self.device = device
+        self.train_count = 0
         self.epoch_count = 0
-
         self.model_save_path = model_save_path
-
         self.best_loss = float('inf')
+        self.myloss = LpLoss(size_average=False)
 
     def start_epoch(self) -> None:
         self.epoch_count += 1
-        self.model.train()
 
     def end_epoch(self, val_loss: float = None) -> None:
 
-        self.optimizer.step_scheduler(val_loss)
+            if val_loss is not None:
+                self.optimizer.step_scheduler(val_loss)
 
-        if val_loss < self.best_loss:
-            save_dict = {
-                'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.generator.state_dict(),
-            }
+                if val_loss < self.best_loss:
+                    save_dict = {
+                        'model_state_dict': self.model.state_dict(),
+                        'optimizer_state_dict': self.optimizer.optimizer.state_dict(),    
+                    }
 
-            if self.optimizer.args['scheduler_args'] is not None:
-                save_dict['scheduler_state_dict'] = \
-                    self.optimizer.generator_scheduler.state_dict()
+                    if self.optimizer.args['scheduler_args'] is not None:
+                        save_dict['scheduler_state_dict'] = \
+                            self.optimizer.scheduler.state_dict()
+                        
 
-            torch.save(save_dict, f'{self.model_save_path}/model.pt')
+                    torch.save(save_dict, f'{self.model_save_path}/model.pt')
 
-            self.best_loss = val_loss
+                    self.best_loss = val_loss
 
-            # save best loss to file
-            with open(f'{self.model_save_path}/loss.txt', 'w') as f:
-                f.write(str(self.best_loss))
-                                     
- 
-    def _train_step(
-        self, 
-        static_point_parameters: torch.Tensor = None,
-        static_spatial_parameters: torch.Tensor = None,
-        dynamic_point_parameters: torch.Tensor = None,
-        dynamic_spatial_parameters: torch.Tensor = None,
-        output_variables: torch.Tensor = None,
-    ):
-        self.optimizer.zero_grad()
+                    # save best loss to file
+                    with open(f'{self.model_save_path}/loss.txt', 'w') as f:
+                        f.write(str(self.best_loss))
 
-        pred_output_variables = self.model(
-            static_point_parameters=static_point_parameters,
-            static_spatial_parameters=static_spatial_parameters,
-            dynamic_point_parameters=dynamic_point_parameters,
-            dynamic_spatial_parameters=dynamic_spatial_parameters
-            )#.reshape(output_variables.shape)
-        
-        MSE_loss = nn.MSELoss()(pred_output_variables, output_variables)
 
-        # update generator
-        MSE_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.model.generator.parameters(), 0.5)
-        self.optimizer.generator.step()
-
-        return MSE_loss.detach().item()
-
+    def _compute_loss(
+        self,
+        y: torch.Tensor = None,
+        y_hat: torch.Tensor = None,   
+    ) -> torch.Tensor:    
+        l2 = self.myloss(y_hat.view(self.batch_size, -1), y.view(self.batch_size, -1))
+        return l2
+                                    
     def train_step(
         self,
-        batch: dict,
-        ) -> dict:
+        batch: dict,        
+        ) -> dict:       
 
         # unpack batch
         static_point_parameters, static_spatial_parameters, \
-        dynamic_point_parameters, dynamic_spatial_parameters, output_variables = \
+        dynamic_point_parameters, dynamic_spatial_parameters, \
+        output_variables = \
             prepare_batch(
                 batch=batch,
                 device=self.device,
             )
-        
-        MSE_loss = self._train_step(
+        self.batch_size = static_spatial_parameters.shape[0] 
+                   
+        # train 
+        self.optimizer.zero_grad()   
+        #with autocast():
+        y_hat = self.model(
             static_point_parameters=static_point_parameters,
             static_spatial_parameters=static_spatial_parameters,
             dynamic_point_parameters=dynamic_point_parameters,
             dynamic_spatial_parameters=dynamic_spatial_parameters,
-            output_variables=output_variables,
         )
+        
+        l2_loss = self._compute_loss(y=output_variables, y_hat=y_hat)
+        l2_loss.backward()
+        self.optimizer.step()     
+        mse_loss = F.mse_loss(y_hat, output_variables, reduction='mean')
+
+        self.train_count += 1       
+
 
         return {
-            'MSE_loss': MSE_loss,
+            'train_loss': l2_loss.detach().item(),
+            'train_mse': mse_loss.detach().item(),
         }
 
     def val_step(
@@ -148,7 +184,8 @@ class UNOTrainStepper(BaseTrainStepper):
     ) -> None:
         
         self.model.eval()
-        total_loss = 0
+        total_l2_loss = 0
+        total_mse_loss = 0
         num_batches = 0
 
         with torch.no_grad():
@@ -160,21 +197,23 @@ class UNOTrainStepper(BaseTrainStepper):
                         batch=batch,
                         device=self.device,
                     )
-                
-                generated_output_data = self.model.generator(
+                y_hat = self.model(
                     static_point_parameters=static_point_parameters,
                     static_spatial_parameters=static_spatial_parameters,
                     dynamic_point_parameters=dynamic_point_parameters,
-                    dynamic_spatial_parameters=dynamic_spatial_parameters
-                    )#.reshape(output_variables.shape)
-                
-                loss = nn.MSELoss()(generated_output_data, output_variables)
-                total_loss += loss.detach().item()
+                    dynamic_spatial_parameters=dynamic_spatial_parameters,
+                )
+                l2_loss = self._compute_loss(y=output_variables, y_hat=y_hat)
+                mse_loss = F.mse_loss(y_hat, output_variables, reduction='mean')    
+
+                total_l2_loss += l2_loss.detach().item()
+                total_mse_loss += mse_loss.detach().item()      
+
                 num_batches += 1
 
-        print(f'Val loss: {total_loss / num_batches: 0.4f}, epoch: {self.epoch_count}')
+        print(f'Validation L2 loss: {total_l2_loss / num_batches} \n  Validation MSE loss: {total_mse_loss / num_batches} \n')
 
-        return total_loss / num_batches
+        return total_l2_loss / num_batches
     
     def plot(
         self, 
@@ -190,11 +229,11 @@ class UNOTrainStepper(BaseTrainStepper):
             )
         
         # Load up preprocessor
-        with open('trained_preprocessors/preprocessor_64.pkl', 'rb') as f:
+        with open('trained_preprocessors/preprocessor_64_pressure_output.pkl', 'rb') as f:
             preprocessor = pickle.load(f)
 
         with torch.no_grad():
-            generated_output_data = self.model.generator(
+            generated_output_data = self.model(
                 static_point_parameters=static_point_parameters,
                 static_spatial_parameters=static_spatial_parameters,
                 dynamic_point_parameters=dynamic_point_parameters,
@@ -224,4 +263,3 @@ class UNOTrainStepper(BaseTrainStepper):
             plot_time=plot_time,
             plot_x_y=(plot_x, plot_y),
         )
-            
