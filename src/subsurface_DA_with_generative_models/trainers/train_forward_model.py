@@ -84,7 +84,7 @@ def train_forward_model(
 
             loss = train_stepper.train_step(batch=batch)
 
-            if i % 10 == 0:
+            if i % 2 == 0:
                 loss_logger_dict = {}
                 for key, value in loss.items():
                     loss_logger_dict[key] = value

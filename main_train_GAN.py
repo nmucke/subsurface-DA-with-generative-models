@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from subsurface_DA_with_generative_models import routine 
 from subsurface_DA_with_generative_models.models.forward_models import u_net_GAN
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
-from subsurface_DA_with_generative_models.train_steppers.GAN_train_stepper import GANTrainStepper
+from subsurface_DA_with_generative_models.train_steppers.old_train_steppers.GAN_train_stepper import GANTrainStepper
 from subsurface_DA_with_generative_models.trainers.train_GAN import train_GAN
 from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset
 
