@@ -11,10 +11,6 @@ model_args:
     num_dense_neurons: [64, 128]
     num_channels: [32, 64, 128, 256] #[128, 64, 32, 16, 8]
     activation: 'gelu'
-  critic_args:
-    num_dense_neurons: [128, 64]
-    num_channels: [8, 16, 32, 64, 128]
-    activation: 'gelu'
   
 optimizer_args:
   learning_rate: 1.0e-4
@@ -23,17 +19,9 @@ optimizer_args:
     type: 'cosine'
     args:
       T_max: 5000
-      #patience: 100
-      #factor: 0.9
-      #min_lr: 1.0e-6
-      #warmup: 25
-      #total_steps: 2000
 
 train_stepper_args:
-  gradient_penalty_regu: 10.0
-  num_critic_steps: 1
-  with_GAN_loss: False
-  GAN_regularization: 1.0e-3
+  num_steps: 1
 
 trainer_args:
   num_epochs: 5000

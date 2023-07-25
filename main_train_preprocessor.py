@@ -4,17 +4,17 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 import pickle
 
-from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset
+from subsurface_DA_with_generative_models.data_handling.xarray_data import ParameterDataset, XarrayDataset
 from subsurface_DA_with_generative_models.preprocessor import MinMaxTransformer, Preprocessor
 
 FOLDER = "data/results64"
 STATIC_POINT_VARS = None
-STATIC_SPATIAL_VARS = ['Por', 'Perm']
+STATIC_SPATIAL_VARS = ['Por', 'Perm', 'x_encoding', 'y_encoding']
 DYNAMIC_SPATIAL_VARS = ['time_encoding']
 DYNAMIC_POINT_VARS = ['gas_rate']
 OUTPUT_VARS = ['Pressure', 'CO_2']
 
-PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_64.pkl'
+PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_64_space_encoding.pkl'
 
 parameter_vars = {
     'static_point': STATIC_POINT_VARS,
@@ -51,7 +51,20 @@ def main():
         preprocessor.partial_fit(batch) 
 
     print("Preprocessor fitted!")
-    
+
+
+    # Load data
+    parameter_dataset = ParameterDataset(
+        path = 'data/parameters_processed',
+    )
+
+    parameter_dataset_dataloader = DataLoader(
+        parameter_dataset,
+    )
+
+    for i, batch in enumerate(parameter_dataset_dataloader):
+        preprocessor.partial_fit(batch, variable_names='static_spatial') 
+    print("Preprocessor fitted!")
 
     # Save the preprocessor
     with open(PREPROCESSOR_SAVE_PATH, 'wb') as f:
