@@ -1,7 +1,10 @@
 import pdb
+import numpy as np
 import torch
 import torch.nn as nn
-import matplotlib.pyplot as plt 
+import os
+from torch import autocast
+import matplotlib.pyplot as plt
 
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
 from subsurface_DA_with_generative_models.train_steppers.base_train_stepper import BaseTrainStepper
@@ -64,92 +67,179 @@ class WAETrainStepper(BaseTrainStepper):
         self,
         model: nn.Module,
         optimizer: GANOptimizer,
-        MMD_regu: str,
+        model_save_path: str,
+        MMD_regu: float,
     ) -> None:
 
         self.model = model
         self.optimizer = optimizer
+
         self.MMD_regu = MMD_regu
 
         self.device = model.device
+
+        self.critic_train_count = 0
+
+        self.generator_scaler = torch.cuda.amp.GradScaler()
+        self.critic_scaler = torch.cuda.amp.GradScaler()
+
+        self.epoch_count = 0
+
+        self.model_save_path = model_save_path
+
+        self.best_loss = float('inf')
 
         self.MSE_loss = nn.MSELoss()
 
     def _sample_latent(self, shape: torch.Tensor) -> torch.Tensor:
         return torch.randn(shape, device=self.device)
     
-    def step_scheduler(self) -> None:
+    def start_epoch(self) -> None:
+        self.epoch_count += 1
+        self.generator_loss = 0 
+
+    def end_epoch(self, val_loss: float = None) -> None:
+
         self.optimizer.step_scheduler()
 
+        save_dict = {
+            'model_state_dict': self.model.state_dict(),
+            'decoder_optimizer_state_dict': self.optimizer.generator.state_dict(),
+            'encoder_optimizer_state_dict': self.optimizer.critic.state_dict(),
+        }
 
-    def _train_step(
-        self, 
-        input_data: torch.Tensor = None,
-    ):
-        
-        self.model.train()
+        if self.optimizer.args['scheduler_args'] is not None:
+            save_dict['decoder_scheduler_state_dict'] = \
+                self.optimizer.generator_scheduler.state_dict()
+            save_dict['encoder_scheduler_state_dict'] = \
+                self.optimizer.critic_scheduler.state_dict()
 
-        self.optimizer.zero_grad()
+        torch.save(save_dict, f'{self.model_save_path}/model.pt')
 
-        # compute critic loss for fake data
-        true_latent_samples = self._sample_latent(
-            shape=(input_data.shape[0], self.model.latent_dim)
-        )
-
-        latent_samples = self.model.encoder(
-            input_data=input_data
-        )
-
-        recosntructed_input_data = self.model.decoder(
-            latent_samples=latent_samples,
-        )
-
-        recon_loss = self.MSE_loss(
-            recosntructed_input_data,
-            input_data
-        )
-
-        latent_loss = MMD_loss(
-            true_latent_samples,
-            latent_samples,
-            kernel="multiscale",
-            device=self.device,
-        )
-
-        loss = recon_loss + self.MMD_regu*latent_loss
-
-        loss.backward()
-        #torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
-        self.optimizer.step()
-
-        return recon_loss.detach().item(), latent_loss.detach().item()
-
+        # save best loss to file
+        with open(f'{self.model_save_path}/loss.txt', 'w') as f:
+            f.write(str(self.best_loss))
+                                    
     def train_step(
         self,
-        input_data: torch.Tensor,
-        ) -> None:
+        batch: dict,
+        ) -> dict:
 
+        # unpack batch
+        static_spatial_parameters = batch.get('static_spatial_parameters')
 
-        # train critic
-        recon_loss, latent_loss = self._train_step(
-            input_data=input_data,
+        # send to device
+        static_spatial_parameters = static_spatial_parameters.to(self.device)
+
+        generated_latent = self.model.encoder(static_spatial_parameters)
+
+        generated_output_data = self.model.generator(generated_latent)
+
+        true_latent = self._sample_latent(
+            shape=(generated_latent.shape)
+        )
+
+        # compute loss
+        latent_loss = MMD_loss(generated_latent, true_latent)
+
+        recon_loss = self.MSE_loss(
+            generated_output_data, 
+            static_spatial_parameters
             )
+        
+        loss = recon_loss + self.MMD_regu*latent_loss
 
-        return {
-            'recon_loss': recon_loss,
-            'latent_loss': latent_loss,
-        }
+
+
+
+            
+        
 
     def val_step(
         self,
-        output_data: torch.Tensor,
-        input_data: torch.Tensor,
+        dataloader: torch.utils.data.DataLoader,
     ) -> None:
         
-        return {
-            'gen_loss': 0,
-            'critic_loss': 0
-        }
+        return None
 
-    def save_model(self, path: str) -> None:
-        torch.save(self.model, path)
+        '''
+        
+        self.model.eval()
+        total_loss = 0
+        num_batches = 0
+
+        with torch.no_grad():
+            for batch in dataloader:
+
+                # unpack batch
+                static_spatial_parameters = batch.get('static_spatial_parameters')
+
+                # send to device
+                static_spatial_parameters = static_spatial_parameters.to(self.device)
+                
+                generated_output_data = self.model.generator(
+                    static_spatial_parameters=static_spatial_parameters,
+                    )
+                
+                total_loss += loss.detach().item()
+                num_batches += 1
+
+        print(f'Val loss: {total_loss / num_batches: 0.4f}, epoch: {self.epoch_count}')
+
+        return total_loss / num_batches
+        '''
+    
+    def plot(
+        self, 
+        batch: dict,
+        plot_path: str = None,
+        ):
+        # unpack batch
+
+
+        # unpack batch
+        static_spatial_parameters = batch.get('static_spatial_parameters')
+
+
+        # send to device
+        static_spatial_parameters = static_spatial_parameters.to(self.device)
+
+        latent = self._sample_latent(
+            shape=(static_spatial_parameters.shape[0], self.model.latent_dim)
+            )
+        
+        with torch.no_grad():
+            generated_output_data = self.model.generator(
+                latent=latent
+            )
+
+        generated_output_data = generated_output_data.detach().cpu().numpy()
+        static_spatial_parameters = static_spatial_parameters.detach().cpu().numpy()
+
+        plt.figure(figsize=(10, 10))
+        for i in range(4):
+            plt.subplot(4, 4, i+1)
+            plt.imshow(generated_output_data[i, 0])
+            plt.colorbar()
+            plt.title(f'Generated')
+
+
+            plt.subplot(4, 4, i+4+1)
+            plt.imshow(static_spatial_parameters[i, 0])
+            plt.colorbar()
+            plt.title(f'True')
+
+
+            plt.subplot(4, 4, i+8+1)
+            plt.imshow(generated_output_data[i, 1])
+            plt.colorbar()
+            plt.title(f'Generated')
+
+            plt.subplot(4, 4, i+12+1)
+            plt.imshow(static_spatial_parameters[i, 1])
+            plt.colorbar()
+            plt.title(f'True')
+
+        plt.savefig(f'{plot_path}/plot_{self.epoch_count}.png')     
+        
+        plt.close()   
