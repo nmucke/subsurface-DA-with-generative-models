@@ -51,6 +51,15 @@ class ResNetBlock(nn.Module):
         )
         self.bn2 = nn.BatchNorm2d(out_channels)
 
+        self.skip_conv = nn.Conv2d(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            kernel_size=1,
+            stride=1,
+            padding=0
+        )
+
+
     def forward(self, x):
 
         residual = x
@@ -60,6 +69,8 @@ class ResNetBlock(nn.Module):
         x = self.activation(x)
         x = self.conv2(x)
         x = self.bn2(x)
+
+        residual = self.skip_conv(residual)
 
         x += residual
         return x

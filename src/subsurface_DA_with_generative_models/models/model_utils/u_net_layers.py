@@ -6,8 +6,16 @@ from subsurface_DA_with_generative_models.models.model_utils.model_utils import 
 
 
 class conv_block(nn.Module):
-    def __init__(self, in_c, out_c, activation='relu'):
+    def __init__(
+        self, 
+        in_c, 
+        out_c, 
+        activation='relu',
+        residual=True,
+        ):
         super().__init__()
+
+        self.residual = residual
 
         self.activation = get_activation_function(activation)
 
@@ -16,13 +24,23 @@ class conv_block(nn.Module):
         self.conv2 = nn.Conv2d(out_c, out_c, kernel_size=3, padding=1)
         self.bn2 = nn.BatchNorm2d(out_c)
 
+        if self.residual:
+            self.skip_conv = nn.Conv2d(in_c, out_c, kernel_size=1, padding=0)
+
     def forward(self, inputs):
+
+        residual = inputs
 
         x = self.conv1(inputs)
         x = self.bn1(x)
         x = self.activation(x)
         x = self.conv2(x)
         x = self.bn2(x)
+
+        if self.residual:
+            residual = self.skip_conv(residual)
+            x += residual
+
         x = self.activation(x)
 
         return x

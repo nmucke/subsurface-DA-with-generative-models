@@ -15,10 +15,7 @@ from subsurface_DA_with_generative_models.data_handling.data_utils import (
     get_output_variables,
     add_meshgrids_to_data,
 )
-<<<<<<< HEAD
 from subsurface_DA_with_generative_models.preprocessor import Preprocessor
-=======
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
 
     
 class XarrayDataset(Dataset):
@@ -32,11 +29,8 @@ class XarrayDataset(Dataset):
             'dynamic_spatial': ['time_encoding'],
         },
         output_vars: list = ['Pressure', 'CO2'],
-<<<<<<< HEAD
-        preprocessor: Preprocessor =  None
-=======
-        preprocessor = None
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
+        preprocessor: Preprocessor =  None,
+        num_samples: int = -1,
         ):
 
         self.data_folder = data_folder
@@ -44,15 +38,10 @@ class XarrayDataset(Dataset):
         self.output_vars = output_vars
 
         self.file_list = os.listdir(self.data_folder)
+        self.file_list = self.file_list[:num_samples]
 
         self.preprocessor = preprocessor
 
-<<<<<<< HEAD
-=======
-
-
-
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
     def __len__(self):
         return len(self.file_list)
     
@@ -63,7 +52,7 @@ class XarrayDataset(Dataset):
         data = xr.open_dataset(file_path)
 
         # Add space encodings
-        if 'space_encoding' in self.parameter_vars['static_spatial']:
+        if 'x_encoding' in self.parameter_vars['static_spatial']:
             data = add_meshgrids_to_data(data, x=True, y=True, time=False)
 
         # Add time encodings
@@ -74,7 +63,6 @@ class XarrayDataset(Dataset):
         static_point_parameters = get_static_point_parameters(
             data=data, 
             static_point_vars=self.parameter_vars['static_point']
-<<<<<<< HEAD
         ) # (num_channels, 1)
 
         static_spatial_parameters = get_static_spatial_parameters(
@@ -96,25 +84,6 @@ class XarrayDataset(Dataset):
             data=data,
             output_vars=self.output_vars
         ) # (num_channels, num_time_steps, num_x, num_y)
-=======
-        )
-        static_spatial_parameters = get_static_spatial_parameters(
-            data=data, 
-            static_spatial_vars=self.parameter_vars['static_spatial']
-        )
-        dynamic_point_parameters = get_dynamic_point_parameters(
-            data=data, 
-            dynamic_point_vars=self.parameter_vars['dynamic_point']
-        )
-        dynamic_spatial_parameters = get_dynamic_spatial_parameters(
-            data=data, 
-            dynamic_spatial_vars=self.parameter_vars['dynamic_spatial']
-        )
-        output_variables = get_output_variables(
-            data=data,
-            output_vars=self.output_vars
-        )
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
         
         # Preprocess data
         if self.preprocessor is not None:
@@ -126,13 +95,10 @@ class XarrayDataset(Dataset):
                 dynamic_point_parameters = self.preprocessor.dynamic_point.transform(dynamic_point_parameters)
             if self.preprocessor.dynamic_spatial:
                 dynamic_spatial_parameters = self.preprocessor.dynamic_spatial.transform(dynamic_spatial_parameters)
-            if self.preprocessor.output:                
+            if self.preprocessor.output:              
                 output_variables = self.preprocessor.output.transform(output_variables)
 
-<<<<<<< HEAD
         # Collect output in dictionary
-=======
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
         return_dict = {}
 
         for var_type in self.parameter_vars.keys():
@@ -141,16 +107,47 @@ class XarrayDataset(Dataset):
         
         if output_variables is not None:
             return_dict['output_variables'] = output_variables
-
+            
         return return_dict
-        
-        
 
 
-<<<<<<< HEAD
+class ParameterDataset(Dataset):
+    def __init__(
+        self, 
+        preprocessor: Preprocessor =  None,
+        path: str = None, 
+        ):
+
+        size = '64x64x1'
+
+        if path is None:
+            self.path = f'data/parameters/2Dresampled_{size}_realization_'
+        else:
+            self.path = path + f'/{size}_'
+
+        self.preprocessor = preprocessor
+
+
+    def __len__(self):
+        return 5934
+    
+    def __getitem__(self, idx):
+
+        data = xr.open_dataset(f'{self.path}{idx+1}.nc')
+
+        static_spatial_parameters = get_static_spatial_parameters(
+            data=data, 
+            static_spatial_vars=['Porosity', 'Permeability']
+        )
+        static_spatial_parameters = static_spatial_parameters.squeeze(1)
+
+        if self.preprocessor is not None:
+            static_spatial_parameters = self.preprocessor.static_spatial.transform(static_spatial_parameters)
+
+        return {'static_spatial_parameters': static_spatial_parameters}
+
+
 '''
-=======
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
 class XarrayDataset_old(Dataset):  #deprecated
     def __init__(
         self, 

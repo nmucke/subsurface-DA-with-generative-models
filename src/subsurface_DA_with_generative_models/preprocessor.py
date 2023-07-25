@@ -35,22 +35,40 @@ class Preprocessor():
         if self.output:
             self.output = MinMaxTransformer()
 
-    def partial_fit(self, data_batch: dict):
-                
-        if self.static_point:
-            self.static_point.partial_fit(data_batch['static_point_parameters'])
+    def partial_fit(self, data_batch: dict, variable_names: str = None):
 
-        if self.static_spatial:
-            self.static_spatial.partial_fit(data_batch['static_spatial_parameters'])
+        if variable_names is None:
+                    
+            if self.static_point:
+                self.static_point.partial_fit(data_batch['static_point_parameters'])
 
-        if self.dynamic_point:
-            self.dynamic_point.partial_fit(data_batch['dynamic_point_parameters'])
+            if self.static_spatial:
+                self.static_spatial.partial_fit(data_batch['static_spatial_parameters'])
 
-        if self.dynamic_spatial:
-            self.dynamic_spatial.partial_fit(data_batch['dynamic_spatial_parameters'])
+            if self.dynamic_point:
+                self.dynamic_point.partial_fit(data_batch['dynamic_point_parameters'])
 
-        if self.output:
-            self.output.partial_fit(data_batch['output_variables'])
+            if self.dynamic_spatial:
+                self.dynamic_spatial.partial_fit(data_batch['dynamic_spatial_parameters'])
+
+            if self.output:
+                self.output.partial_fit(data_batch['output_variables'])
+        
+        else:
+            if self.static_point and 'static_point' in variable_names:
+                self.static_point.partial_fit(data_batch['static_point_parameters'])
+
+            if self.static_spatial and 'static_spatial' in variable_names:
+                self.static_spatial.partial_fit(data_batch['static_spatial_parameters'])
+
+            if self.dynamic_point and 'dynamic_point' in variable_names:
+                self.dynamic_point.partial_fit(data_batch['dynamic_point_parameters'])
+
+            if self.dynamic_spatial and 'dynamic_spatial' in variable_names:
+                self.dynamic_spatial.partial_fit(data_batch['dynamic_spatial_parameters'])
+
+            if self.output and 'output' in variable_names:
+                self.output.partial_fit(data_batch['output_variables'])
     
 
       
@@ -63,24 +81,15 @@ class MinMaxTransformer():
         self.num_channels = None
     
     def transform(self, data):
-
-        for i in range(self.num_channels):
-<<<<<<< HEAD
+         
+        for i in range(self.num_channels):  
             data[i] = (data[i] - self.min[i]) / (self.max[i] - self.min[i])
-=======
-            data[:, i] = (data[:, i] - self.min[i]) / (self.max[i] - self.min[i])
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
-
         return data        
 
     def inverse_transform(self, data):
 
         for i in range(self.num_channels):
-<<<<<<< HEAD
             data[i] = data[i] * (self.max[i] - self.min[i]) + self.min[i]
-=======
-            data[:, i] = data[:, i] * (self.max[i] - self.min[i]) + self.min[i]
->>>>>>> 0298a768b99f26fb8e92c06c89d1852b8a6ff8ee
 
         return data        
 
@@ -98,7 +107,7 @@ class MinMaxTransformer():
             if batch_min < self.min[i]:
                 self.min[i] = batch_min
             if batch_max > self.max[i]:
-                self.max[i] = batch_max      
+                self.max[i] = batch_max   
 
         
 
