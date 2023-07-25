@@ -70,6 +70,8 @@ class ParameterGenerator(nn.Module):
         self.num_dense_neurons = num_dense_neurons
         self.num_channels = num_channels
 
+        self.sigmoid = nn.Sigmoid()
+
         # reverse the order of the channels
         self.num_upsample_channels = [channels for channels in num_channels[::-1]]
         self.activation = model_utils.get_activation_function(activation)
@@ -113,10 +115,10 @@ class ParameterGenerator(nn.Module):
     
     def forward(
             self, 
-            latent_samples: torch.Tensor,
+            latent: torch.Tensor,
         ):
         
-        z = latent_samples
+        z = latent
         for dense_layer in self.dense_layers:
             z = self.activation(dense_layer(z))
         
@@ -139,10 +141,14 @@ class ParameterCritic(nn.Module):
         num_dense_neurons: list,
         activation: str = 'gelu',
         resnet: bool = False,
+        wasserstein: bool = False,
     ) -> None:
         super(ParameterCritic, self).__init__()
 
         self.num_channels = num_channels
+
+        self.wasserstein = wasserstein
+        self.sigmoid = nn.Sigmoid()
 
         first_layer_channels = 2
         
@@ -170,18 +176,21 @@ class ParameterCritic(nn.Module):
     
     def forward(
         self, 
-        input_data: torch.Tensor = None,
+        static_spatial_parameters: torch.Tensor = None,
         ):
 
         for conv_layer in self.conv_layers:
-            input_data = self.activation(conv_layer(input_data))
+            static_spatial_parameters = self.activation(conv_layer(static_spatial_parameters))
         
-        input_data = input_data.flatten(start_dim=1)
+        static_spatial_parameters = static_spatial_parameters.flatten(start_dim=1)
         
         for dense_layer in self.dense_layers:
-            input_data = self.activation(dense_layer(input_data))
+            static_spatial_parameters = self.activation(dense_layer(static_spatial_parameters))
 
-        input_data = self.output_layer(input_data)
+        static_spatial_parameters = self.output_layer(static_spatial_parameters)
         
-        return input_data
+        if self.wasserstein:
+            return static_spatial_parameters
+        else:
+            return self.sigmoid(static_spatial_parameters)
     

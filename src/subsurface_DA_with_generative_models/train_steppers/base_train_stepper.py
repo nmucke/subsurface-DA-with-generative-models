@@ -37,6 +37,7 @@ class BaseTrainStepper():
     @abstractmethod
     def end_epoch(self, val_loss) -> None:
         raise NotImplementedError
+    
 
 
 

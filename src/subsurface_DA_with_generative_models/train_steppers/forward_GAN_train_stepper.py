@@ -1,4 +1,5 @@
 import pdb
+import pickle
 import numpy as np
 import torch
 import torch.nn as nn
@@ -7,6 +8,7 @@ from torch import autocast
 import matplotlib.pyplot as plt
 
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
+from subsurface_DA_with_generative_models.plotting_utils import plot_output
 from subsurface_DA_with_generative_models.train_steppers.base_train_stepper import BaseTrainStepper
 
 def prepare_batch(batch: dict, device: str) -> dict:
@@ -94,7 +96,7 @@ class ForwardGANTrainStepper(BaseTrainStepper):
                 save_dict['generator_scheduler_state_dict'] = \
                     self.optimizer.generator_scheduler.state_dict()
                 save_dict['critic_scheduler_state_dict'] = \
-                    self.optimizer.critic_scheduler.state_dict(),
+                    self.optimizer.critic_scheduler.state_dict()
 
             torch.save(save_dict, f'{self.model_save_path}/model.pt')
 
@@ -176,7 +178,7 @@ class ForwardGANTrainStepper(BaseTrainStepper):
             static_spatial_parameters=static_spatial_parameters,
             dynamic_point_parameters=dynamic_point_parameters,
             dynamic_spatial_parameters=dynamic_spatial_parameters
-            ).reshape(output_variables.shape)
+            )#.reshape(output_variables.shape)
         
         critic_output_fake_data = self.model.critic(
             output_variables=generated_output_variables,
@@ -227,7 +229,7 @@ class ForwardGANTrainStepper(BaseTrainStepper):
             static_spatial_parameters=static_spatial_parameters,
             dynamic_point_parameters=dynamic_point_parameters,
             dynamic_spatial_parameters=dynamic_spatial_parameters
-            ).reshape(output_variables.shape)
+            )#.reshape(output_variables.shape)
         
         if self.with_GAN_loss:
             critic_output_data = self.model.critic(
@@ -249,7 +251,7 @@ class ForwardGANTrainStepper(BaseTrainStepper):
             GAN_loss = torch.tensor(0.0)
 
         # update generator
-        generator_loss.backward()
+        MSE_loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.generator.parameters(), 0.5)
         self.optimizer.generator.step()
 
@@ -334,13 +336,13 @@ class ForwardGANTrainStepper(BaseTrainStepper):
                     static_spatial_parameters=static_spatial_parameters,
                     dynamic_point_parameters=dynamic_point_parameters,
                     dynamic_spatial_parameters=dynamic_spatial_parameters
-                    ).reshape(output_variables.shape)
+                    )#.reshape(output_variables.shape)
                 
                 loss = nn.MSELoss()(generated_output_data, output_variables)
                 total_loss += loss.detach().item()
                 num_batches += 1
 
-        print(f'Validation loss: {total_loss / num_batches}')
+        print(f'Val loss: {total_loss / num_batches: 0.4f}, epoch: {self.epoch_count}')
 
         return total_loss / num_batches
     
@@ -356,63 +358,40 @@ class ForwardGANTrainStepper(BaseTrainStepper):
                 batch=batch,
                 device=self.device,
             )
+        
+        # Load up preprocessor
+        with open('trained_preprocessors/preprocessor_64.pkl', 'rb') as f:
+            preprocessor = pickle.load(f)
+
         with torch.no_grad():
             generated_output_data = self.model.generator(
                 static_point_parameters=static_point_parameters,
                 static_spatial_parameters=static_spatial_parameters,
                 dynamic_point_parameters=dynamic_point_parameters,
                 dynamic_spatial_parameters=dynamic_spatial_parameters
-                ).reshape(output_variables.shape)
+                )#.reshape(output_variables.shape)
 
         plot_time = 30
         plot_x = 40
         plot_y = 10
 
-        plt.figure(figsize=(10, 10))
-        plt.subplot(3, 3, 1)
-        plt.imshow(generated_output_data[0, 0, plot_time, :, :].cpu().numpy())
-        plt.colorbar()
-        plt.title('Generated pressure')
+        output_variables = output_variables.cpu()
+        generated_output_data = generated_output_data.cpu()
 
-        plt.subplot(3, 3, 2)
-        plt.imshow(output_variables[0, 0, plot_time, :, :].cpu().numpy())
-        plt.colorbar()
-        plt.title('True pressure')
+        for i in range(output_variables.shape[0]):
+            output_variables[i] = preprocessor.output.inverse_transform(output_variables[i])
+            generated_output_data[i] = preprocessor.output.inverse_transform(generated_output_data[i])
 
-        plt.subplot(3, 3, 3)
-        plt.imshow(np.abs(generated_output_data[0, 0, plot_time, :, :].cpu().numpy() - output_variables[0, 0, plot_time, :, :].cpu().numpy()))
-        plt.colorbar()
-        plt.title('Pressure Error')
+        output_variables = output_variables.numpy()
+        generated_output_data = generated_output_data.numpy()
 
-        plt.subplot(3, 3, 4)
-        plt.imshow(generated_output_data[0, 1, plot_time, :, :].cpu().numpy())
-        plt.colorbar()
-        plt.title('Generated CO2')
+        plot_path = f'{plot_path}/plot_{self.epoch_count}'
 
-        plt.subplot(3, 3, 5)
-        plt.imshow(output_variables[0, 1, plot_time, :, :].cpu().numpy())
-        plt.colorbar()
-        plt.title('True CO2')
-
-        plt.subplot(3, 3, 6)
-        plt.imshow(np.abs(generated_output_data[0, 1, plot_time, :, :].cpu().numpy() - output_variables[0, 1, plot_time, :, :].cpu().numpy()))
-        plt.colorbar()
-        plt.title('CO2 Error')
-
-        plt.subplot(3, 3, 7)
-        plt.plot(generated_output_data[0, 1, :, plot_x, plot_y].cpu().numpy(), label='Generated CO2')
-        plt.plot(output_variables[0, 1, :, plot_x, plot_y].cpu().numpy(), label='True CO2')
-        plt.legend()
-        plt.grid()
-        plt.title(f'CO2 at ({plot_x}, {plot_y})')
-
-        plt.subplot(3, 3, 8)
-        plt.plot(generated_output_data[0, 0, :, plot_x, plot_y].cpu().numpy(), label='Generated pressure')
-        plt.plot(output_variables[0, 0, :, plot_x, plot_y].cpu().numpy(), label='True pressure')
-        plt.legend()
-        plt.grid()
-        plt.title(f'Pressure at ({plot_x}, {plot_y})')
-
-        plt.savefig(f'{plot_path}/plot_{self.epoch_count}.png')     
-        
-        plt.close()   
+        plot_output(
+            generated_output_data=generated_output_data,
+            output_variables=output_variables,
+            plot_path=plot_path,
+            plot_time=plot_time,
+            plot_x_y=(plot_x, plot_y),
+        )
+            
