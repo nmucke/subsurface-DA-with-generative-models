@@ -28,9 +28,9 @@ torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
 
-MODEL_TYPE = 'UNO'
+MODEL_TYPE = 'UNetGAN'
 DEVICE = 'cuda'
-SAVE_PATH = 'trained_models/UNO'
+SAVE_PATH = f'trained_models/{MODEL_TYPE}'
 
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
