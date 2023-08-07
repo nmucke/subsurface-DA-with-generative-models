@@ -4,6 +4,34 @@ import numpy as np
 import torch
 import xarray as xr
 
+def prepare_batch(batch: dict, device: str) -> dict:
+
+    # unpack batch
+    static_point_parameters = batch.get('static_point_parameters')
+    static_spatial_parameters = batch.get('static_spatial_parameters')
+    dynamic_point_parameters = batch.get('dynamic_point_parameters')
+    dynamic_spatial_parameters = batch.get('dynamic_spatial_parameters')
+    output_variables = batch.get('output_variables')
+
+    # send to device
+    if static_point_parameters is not None:
+        static_point_parameters = static_point_parameters.to(device)
+    if static_spatial_parameters is not None:
+        static_spatial_parameters = static_spatial_parameters.to(device)
+    if dynamic_point_parameters is not None:
+        dynamic_point_parameters = dynamic_point_parameters.to(device)
+    if dynamic_spatial_parameters is not None:
+        dynamic_spatial_parameters = dynamic_spatial_parameters.to(device)
+    if output_variables is not None:
+        output_variables = output_variables.to(device)
+
+    return (
+        static_point_parameters,
+        static_spatial_parameters,
+        dynamic_point_parameters,
+        dynamic_spatial_parameters,
+        output_variables,
+    )
 
 def get_variable(data, var_name):
     if var_name in data:

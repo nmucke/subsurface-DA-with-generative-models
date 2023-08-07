@@ -6,6 +6,7 @@ data/
 # Exclude gan output
 gan_output/
 wae_output/
+trained_models/
 
 # Exclude large files
 *.mp4
@@ -17,6 +18,7 @@ wae_output/
 *.avi
 *.mov
 *.pt
+*.pkl
 
 # Exclude MacOS files
 *.DS_Store

@@ -21,9 +21,10 @@ import numpy as np
 def plot_output(
     generated_output_data: np.ndarray,
     output_variables: np.ndarray,
-    plot_path: str,
     plot_time: int,
     plot_x_y: tuple,
+    plot_path: str = None,
+    show_plot: bool = False,
 ):
     pressure_countour_level = np.array(
         [0.4 * output_variables[0, 0, plot_time, :, :].max(),
@@ -198,6 +199,10 @@ def plot_output(
     plt.grid()
     plt.title(f'Pressure at ({plot_x}, {plot_y})')
 
-    plt.savefig(f'{plot_path}.png')     
+    if plot_path is not None:
+        plt.savefig(f'{plot_path}.png')     
 
+    if show_plot:
+        plt.show()
+        
     plt.close()   

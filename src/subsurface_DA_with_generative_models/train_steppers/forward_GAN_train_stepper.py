@@ -10,40 +10,9 @@ import matplotlib.pyplot as plt
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
 from subsurface_DA_with_generative_models.plotting_utils import plot_output
 from subsurface_DA_with_generative_models.train_steppers.base_train_stepper import BaseTrainStepper
+from subsurface_DA_with_generative_models.data_handling.data_utils import prepare_batch
 
-def prepare_batch(batch: dict, device: str) -> dict:
 
-    # unpack batch
-    static_point_parameters = batch.get('static_point_parameters')
-    static_spatial_parameters = batch.get('static_spatial_parameters')
-    dynamic_point_parameters = batch.get('dynamic_point_parameters')
-    dynamic_spatial_parameters = batch.get('dynamic_spatial_parameters')
-    output_variables = batch.get('output_variables')
-
-    # get dimensions sizes
-    num_x = static_spatial_parameters.shape[2]
-    num_y = static_spatial_parameters.shape[3]
-    num_time_steps = dynamic_point_parameters.shape[-1]
-
-    # send to device
-    if static_point_parameters is not None:
-        static_point_parameters = static_point_parameters.to(device)
-    if static_spatial_parameters is not None:
-        static_spatial_parameters = static_spatial_parameters.to(device)
-    if dynamic_point_parameters is not None:
-        dynamic_point_parameters = dynamic_point_parameters.to(device)
-    if dynamic_spatial_parameters is not None:
-        dynamic_spatial_parameters = dynamic_spatial_parameters.to(device)
-    if output_variables is not None:
-        output_variables = output_variables.to(device)
-
-    return (
-        static_point_parameters,
-        static_spatial_parameters,
-        dynamic_point_parameters,
-        dynamic_spatial_parameters,
-        output_variables,
-    )
 
 class ForwardGANTrainStepper(BaseTrainStepper):
 

@@ -8,16 +8,16 @@ import pdb
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from subsurface_DA_with_generative_models.models.forward_models.FNO3D import FNO3d
-from subsurface_DA_with_generative_models.models.forward_models.UNO import UNO
 
 from subsurface_DA_with_generative_models.optimizers.forward_model_optimizer import ForwardModelOptimizer
 from subsurface_DA_with_generative_models.train_steppers.forward_FNO3D_train_stepper import FNO3DTrainStepper
-from subsurface_DA_with_generative_models.train_steppers.forward_train_stepper import UNOTrainStepper
+from subsurface_DA_with_generative_models.train_steppers.forward_train_stepper import ForwardTrainStepper
 
 # use matplotlib agg backend so figures can be saved in the background
 plt.switch_backend('Qt5Agg')
 
 from subsurface_DA_with_generative_models.models.forward_models import u_net_GAN
+from subsurface_DA_with_generative_models.models.forward_models import u_net
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
 from subsurface_DA_with_generative_models.train_steppers.forward_GAN_train_stepper import ForwardGANTrainStepper
 from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset
@@ -29,7 +29,6 @@ torch.backends.cuda.enable_flash_sdp(enabled=True)
 torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
-
 MODEL_TYPE = 'FNO3D'
 DEVICE = 'cuda'
 SAVE_PATH = f'trained_models/{MODEL_TYPE}'
@@ -37,14 +36,14 @@ SAVE_PATH = f'trained_models/{MODEL_TYPE}'
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
-CONTINUE_TRAINING = False
+CONTINUE_TRAINING = True
 
 FOLDER = "data/results64"
 STATIC_POINT_VARS = None
 STATIC_SPATIAL_VARS = ['Por', 'Perm']
 DYNAMIC_SPATIAL_VARS = ['time_encoding']
 DYNAMIC_POINT_VARS = ['gas_rate']
-OUTPUT_VARS = ['Pressure']
+OUTPUT_VARS = ['Pressure', 'CO_2']
 
 parameter_vars = {
     'static_point': STATIC_POINT_VARS,
@@ -53,9 +52,7 @@ parameter_vars = {
     'dynamic_spatial': DYNAMIC_SPATIAL_VARS,
 }
 
-if MODEL_TYPE == 'UNO':
-    PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/preprocessor_64_space_encoding.pkl'
-elif MODEL_TYPE == 'UNetGAN':
+if MODEL_TYPE == 'UNetGAN' or MODEL_TYPE == 'UNet':
     PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/preprocessor_64.pkl'
 elif MODEL_TYPE == 'FNO3D':
     PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/preprocessor_64_FNO.pkl'
@@ -81,7 +78,7 @@ def main():
         parameter_vars=parameter_vars,
         output_vars=OUTPUT_VARS,
         preprocessor=preprocessor,
-        num_samples=200,
+        num_samples=500,
     )
     train_dataset, val_dataset = torch.utils.data.random_split(dataset, [0.8, 0.2])
 
@@ -95,9 +92,7 @@ def main():
     )
 
     # Set up model
-    if MODEL_TYPE == 'UNO':
-        model = UNO()
-    elif MODEL_TYPE == 'UNetGAN':
+    if MODEL_TYPE == 'UNetGAN':
         model = u_net_GAN.UNetGAN(
             generator_args=config['model_args']['generator_args'],
             critic_args=config['model_args']['critic_args'],
@@ -106,10 +101,14 @@ def main():
         model = FNO3d(
             **config['model_args'],
         )
+    elif MODEL_TYPE == 'UNet':
+        model = u_net.UNet(
+            **config['model_args'],
+        )
     model.to(DEVICE)
     
     # Set up optimizer
-    if MODEL_TYPE == 'UNO':
+    if MODEL_TYPE == 'UNet':
         optimizer = ForwardModelOptimizer(
             model=model,
             args=config['optimizer_args']
@@ -131,15 +130,7 @@ def main():
         model.load_state_dict(state_dict['model_state_dict'])
         optimizer.load_state_dict(state_dict)
     
-    # Set up train stepper
-    if MODEL_TYPE == 'UNO':
-        train_stepper = UNOTrainStepper(
-            model=model,
-            optimizer=optimizer,
-            model_save_path=SAVE_PATH,
-            **config['train_stepper_args'],
-        )
-    elif MODEL_TYPE == 'UNetGAN':
+    if MODEL_TYPE == 'UNetGAN':
         train_stepper = ForwardGANTrainStepper(
             model=model,
             optimizer=optimizer,
@@ -148,6 +139,14 @@ def main():
         )
     elif MODEL_TYPE == 'FNO3D':
         train_stepper = FNO3DTrainStepper(
+            model=model,
+            optimizer=optimizer,
+            device=DEVICE,
+            model_save_path=SAVE_PATH,
+            #**config['train_stepper_args'],
+        )
+    elif MODEL_TYPE == 'UNet':
+        train_stepper = ForwardTrainStepper(
             model=model,
             optimizer=optimizer,
             model_save_path=SAVE_PATH,

@@ -10,35 +10,9 @@ import matplotlib.pyplot as plt
 from subsurface_DA_with_generative_models.optimizers.GAN_optimizer import GANOptimizer
 from subsurface_DA_with_generative_models.plotting_utils import plot_output
 from subsurface_DA_with_generative_models.train_steppers.base_train_stepper import BaseTrainStepper
+from subsurface_DA_with_generative_models.data_handling.data_utils import prepare_batch
 
-def prepare_batch(batch: dict, device: str) -> dict:
 
-    # unpack batch
-    static_point_parameters = batch.get('static_point_parameters')
-    static_spatial_parameters = batch.get('static_spatial_parameters')
-    dynamic_point_parameters = batch.get('dynamic_point_parameters')
-    dynamic_spatial_parameters = batch.get('dynamic_spatial_parameters')
-    output_variables = batch.get('output_variables')
-
-    # send to device
-    if static_point_parameters is not None:
-        static_point_parameters = static_point_parameters.to(device)
-    if static_spatial_parameters is not None:
-        static_spatial_parameters = static_spatial_parameters.to(device)
-    if dynamic_point_parameters is not None:
-        dynamic_point_parameters = dynamic_point_parameters.to(device)
-    if dynamic_spatial_parameters is not None:
-        dynamic_spatial_parameters = dynamic_spatial_parameters.to(device)
-    if output_variables is not None:
-        output_variables = output_variables.to(device)
-
-    return (
-        static_point_parameters,
-        static_spatial_parameters,
-        dynamic_point_parameters,
-        dynamic_spatial_parameters,
-        output_variables,
-    )
 
 class ForwardTrainStepper(BaseTrainStepper):
 
@@ -75,12 +49,12 @@ class ForwardTrainStepper(BaseTrainStepper):
         if val_loss < self.best_loss:
             save_dict = {
                 'model_state_dict': self.model.state_dict(),
-                'optimizer_state_dict': self.optimizer.generator.state_dict(),
+                'optimizer_state_dict': self.optimizer.optimizer.state_dict(),
             }
 
             if self.optimizer.args['scheduler_args'] is not None:
                 save_dict['scheduler_state_dict'] = \
-                    self.optimizer.generator_scheduler.state_dict()
+                    self.optimizer.scheduler.state_dict()
 
             torch.save(save_dict, f'{self.model_save_path}/model.pt')
 
@@ -106,14 +80,14 @@ class ForwardTrainStepper(BaseTrainStepper):
             static_spatial_parameters=static_spatial_parameters,
             dynamic_point_parameters=dynamic_point_parameters,
             dynamic_spatial_parameters=dynamic_spatial_parameters
-            )#.reshape(output_variables.shape)
+        )
         
         MSE_loss = nn.MSELoss()(pred_output_variables, output_variables)
 
         # update generator
         MSE_loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.model.generator.parameters(), 0.5)
-        self.optimizer.generator.step()
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 0.5)
+        self.optimizer.step()
 
         return MSE_loss.detach().item()
 
@@ -161,7 +135,7 @@ class ForwardTrainStepper(BaseTrainStepper):
                         device=self.device,
                     )
                 
-                generated_output_data = self.model.generator(
+                generated_output_data = self.model(
                     static_point_parameters=static_point_parameters,
                     static_spatial_parameters=static_spatial_parameters,
                     dynamic_point_parameters=dynamic_point_parameters,
@@ -194,7 +168,7 @@ class ForwardTrainStepper(BaseTrainStepper):
             preprocessor = pickle.load(f)
 
         with torch.no_grad():
-            generated_output_data = self.model.generator(
+            generated_output_data = self.model(
                 static_point_parameters=static_point_parameters,
                 static_spatial_parameters=static_spatial_parameters,
                 dynamic_point_parameters=dynamic_point_parameters,

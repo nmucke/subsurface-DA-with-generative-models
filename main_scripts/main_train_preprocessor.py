@@ -9,12 +9,12 @@ from subsurface_DA_with_generative_models.preprocessor import MinMaxTransformer,
 
 FOLDER = "data/results64"
 STATIC_POINT_VARS = None
-STATIC_SPATIAL_VARS = ['Por', 'Perm', 'x_encoding', 'y_encoding']
+STATIC_SPATIAL_VARS = ['Por', 'Perm']
 DYNAMIC_SPATIAL_VARS = ['time_encoding']
 DYNAMIC_POINT_VARS = ['gas_rate']
 OUTPUT_VARS = ['Pressure']
 
-PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_64_FNO.pkl'
+PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_64.pkl'
 
 parameter_vars = {
     'static_point': STATIC_POINT_VARS,
