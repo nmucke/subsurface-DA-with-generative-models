@@ -10,7 +10,7 @@ from subsurface_DA_with_generative_models.models.forward_models import u_net_GAN
 
 from subsurface_DA_with_generative_models.models.parameter_models import parameter_GAN
 plt.switch_backend('agg')
-
+#
 # set matplotlib font size globally
 plt.rcParams.update({'font.size': 5})
 
