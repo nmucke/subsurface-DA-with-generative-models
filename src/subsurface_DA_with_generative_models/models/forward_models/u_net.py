@@ -102,12 +102,12 @@ class UNet(nn.Module):
             norm=nn.LayerNorm(latent_channels),
         )
 
-        '''
         self.final_conv_layer = nn.Conv2d(
             in_channels=num_channels[0],
             out_channels=2,
-            kernel_size=1,
+            kernel_size=3,
             stride=1,
+            padding=1,
         )
         '''
 
@@ -127,6 +127,7 @@ class UNet(nn.Module):
             padding=1,
             bias=False
         )
+        '''
 
     def prepare_spatial_data(
         self,
@@ -238,15 +239,15 @@ class UNet(nn.Module):
         input_data = self.u_net_model.decoder(input_data, skip_connections)
 
         # (batch_size*num_time_steps, 2, x_dim, y_dim)
-        #input_data = self.final_conv_layer(input_data)
+        input_data = self.final_conv_layer(input_data)
 
         # (batch_size, 2, num_time_steps, x_dim, y_dim)
-        input_data = input_data.view(batch_size, self.num_channels[0], num_time_steps, x_dim, y_dim)
+        input_data = input_data.view(batch_size, 2, num_time_steps, x_dim, y_dim)
 
         # (batch_size, 2, num_time_steps, x_dim, y_dim)
-        input_data = self.final_3D_conv_layer_1(input_data)
-        input_data = self.activation(input_data)
-        input_data = self.final_3D_conv_layer_2(input_data)
+        #input_data = self.final_3D_conv_layer_1(input_data)
+        #input_data = self.activation(input_data)
+        #input_data = self.final_3D_conv_layer_2(input_data)
 
         return input_data
     

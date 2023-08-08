@@ -5,6 +5,7 @@ from denoising_diffusion_pytorch import Unet, GaussianDiffusion
 from tqdm import tqdm
 
 from subsurface_DA_with_generative_models.data_handling.xarray_data import XarrayDataset
+from subsurface_DA_with_generative_models.models.parameter_models.parameter_diffusion import ParameterDiffusion
 
 torch.set_default_dtype(torch.float32)
 
@@ -32,6 +33,10 @@ PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/preprocessor_64.pkl'
 with open(PREPROCESSOR_LOAD_PATH, 'rb') as f:
     preprocessor = pickle.load(f)
 
+MODEL_SAVE_PATH = 'trained_models/diffusion.pt'
+
+CONTINUE_TRAINING = True
+
 def main():
 
     # Load data
@@ -47,9 +52,10 @@ def main():
         dataset,
         batch_size=16,
         shuffle=True,
-        num_workers=4,
+        num_workers=8,
     )
 
+    '''
     model = Unet(
         dim=64,
         dim_mults=(1, 2, 4, 8),
@@ -63,10 +69,17 @@ def main():
         image_size = 64,
         timesteps = 100    # number of steps
     )
-    diffusion = diffusion.to(DEVICE)
-    diffusion.train()
+    '''
 
-    optimizer = torch.optim.Adam(diffusion.parameters(), lr=1e-4)
+    diffusion_model = ParameterDiffusion(DEVICE)
+
+    diffusion_model = diffusion_model.to(DEVICE)
+    diffusion_model.train()
+
+    if CONTINUE_TRAINING:
+        diffusion_model.load_state_dict(torch.load(MODEL_SAVE_PATH))
+
+    optimizer = torch.optim.Adam(diffusion_model.parameters(), lr=1e-4)
 
     pbar = tqdm(range(2000))
     for epoch in pbar:
@@ -76,17 +89,31 @@ def main():
 
             training_images = batch['static_spatial_parameters'].to(DEVICE)
 
-            loss = diffusion(training_images)
+            loss = diffusion_model.diffusion(training_images)
             loss.backward()
 
             optimizer.step()
         
         print(f'Epoch {epoch}, loss: {loss.item()}')
 
-    # after a lot of training
-    diffusion.eval()
+        if epoch % 50 == 0:
+            diffusion_model.diffusion.eval()
+            sampled_images = diffusion_model.diffusion.sample(batch_size = 16)
+            plt.figure()
+            for i in range(16):
+                plt.subplot(4, 4, i+1)
+                plt.imshow(sampled_images[i, 0, :, :].cpu().detach().numpy())
+            plt.savefig('diffusion_samples.png')
 
-    sampled_images = diffusion.sample(batch_size = 16)
+            diffusion_model.diffusion.train()
+
+            # Save model
+            torch.save(diffusion_model.state_dict(), MODEL_SAVE_PATH)
+
+    # after a lot of training
+
+    diffusion_model.diffusion.eval()
+    sampled_images = diffusion_model.diffusion.sample(batch_size = 16)
     plt.figure()
     for i in range(16):
         plt.subplot(4, 4, i+1)

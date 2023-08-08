@@ -29,14 +29,14 @@ torch.backends.cuda.enable_flash_sdp(enabled=True)
 torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
-MODEL_TYPE = 'FNO3D'
+MODEL_TYPE = 'UNet'
 DEVICE = 'cuda'
 SAVE_PATH = f'trained_models/{MODEL_TYPE}'
 
 if not os.path.exists(SAVE_PATH):
     os.makedirs(SAVE_PATH)
 
-CONTINUE_TRAINING = True
+CONTINUE_TRAINING = False
 
 FOLDER = "data/results64"
 STATIC_POINT_VARS = None
