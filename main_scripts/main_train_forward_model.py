@@ -8,6 +8,7 @@ import pdb
 import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from subsurface_DA_with_generative_models.models.forward_models.FNO3D import FNO3d
+from subsurface_DA_with_generative_models.optimizers.FNO3D_optimizer import FNO3dOptimizer
 
 from subsurface_DA_with_generative_models.optimizers.forward_model_optimizer import ForwardModelOptimizer
 from subsurface_DA_with_generative_models.train_steppers.forward_FNO3D_train_stepper import FNO3DTrainStepper
@@ -29,7 +30,7 @@ torch.backends.cuda.enable_flash_sdp(enabled=True)
 torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
-MODEL_TYPE = 'UNet'
+MODEL_TYPE = 'FNO3D'
 DEVICE = 'cuda'
 SAVE_PATH = f'trained_models/{MODEL_TYPE}'
 
@@ -119,7 +120,7 @@ def main():
             args=config['optimizer_args']
         )
     elif MODEL_TYPE == 'FNO3D':
-        optimizer = ForwardModelOptimizer(
+        optimizer = FNO3dOptimizer(
             model=model,
             args=config['optimizer_args']
         )

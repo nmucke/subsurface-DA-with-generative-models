@@ -1,7 +1,7 @@
 data_args:
   file_path: data
 dataloader_args:
-  batch_size: 3
+  batch_size: 2
   num_workers: 1
   shuffle: true
 model_args:
@@ -19,7 +19,6 @@ optimizer_args:
       min_lr: 1.0e-06
       patience: 10
     type: plateau
-  weight_decay: 1.0e-08
 train_stepper_args: null
 trainer_args:
   num_epochs: 1000
