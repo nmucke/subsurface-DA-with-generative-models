@@ -7,14 +7,14 @@ import pickle
 from subsurface_DA_with_generative_models.data_handling.xarray_data import ParameterDataset, XarrayDataset
 from subsurface_DA_with_generative_models.preprocessor import MinMaxTransformer, Preprocessor
 
-FOLDER = "data/results64"
+FOLDER = "data/results32"
 STATIC_POINT_VARS = None
 STATIC_SPATIAL_VARS = ['Por', 'Perm']
 DYNAMIC_SPATIAL_VARS = ['time_encoding']
 DYNAMIC_POINT_VARS = ['gas_rate']
 OUTPUT_VARS = ['Pressure']
 
-PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_64.pkl'
+PREPROCESSOR_SAVE_PATH = 'trained_preprocessors/preprocessor_32.pkl'
 
 parameter_vars = {
     'static_point': STATIC_POINT_VARS,

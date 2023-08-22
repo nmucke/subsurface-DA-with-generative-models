@@ -51,8 +51,8 @@ parameter_vars = {
     'dynamic_spatial': DYNAMIC_SPATIAL_VARS,
 }
 
-NUM_PARTICLES = 5000
-NUM_ITERATIONS = 50
+NUM_PARTICLES = 1000
+NUM_ITERATIONS = 25
 
 OBS_X = [20, 20, 40, 40]
 OBS_Y = [20, 40, 20, 40]

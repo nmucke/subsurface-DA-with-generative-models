@@ -17,7 +17,7 @@ from subsurface_DA_with_generative_models.data_handling.xarray_data import Xarra
 torch.set_default_dtype(torch.float32)
 
 torch.backends.cuda.enable_flash_sdp(enabled=True)
-torch.set_float32_matmul_precision('medium')
+torch.set_float32_matmul_precision('medium')s
 torch.backends.cuda.matmul.allow_tf32 = True
 
 

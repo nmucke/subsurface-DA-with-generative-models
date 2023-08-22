@@ -24,12 +24,12 @@ torch.backends.cuda.enable_flash_sdp(enabled=True)
 torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
-MODELS_TO_TEST = ['UNet', 'UNetGAN']
+MODELS_TO_TEST = ['UNet']
 DEVICE = 'cuda'
 
 CONTINUE_TRAINING = False
 
-FOLDER = "data/results64"
+FOLDER = "data/results32"
 STATIC_POINT_VARS = None
 STATIC_SPATIAL_VARS = ['Por', 'Perm']
 DYNAMIC_SPATIAL_VARS = ['time_encoding']
@@ -49,9 +49,9 @@ def main():
         load_path = f'trained_models/{model_type}'
 
         if model_type == 'UNetGAN' or model_type == 'UNet':
-            preprocessor_load_path = 'trained_preprocessors/preprocessor_64.pkl'
+            preprocessor_load_path = 'trained_preprocessors/preprocessor_32.pkl'
         elif model_type == 'FNO3D':
-            preprocessor_load_path = 'trained_preprocessors/preprocessor_64_FNO.pkl'
+            preprocessor_load_path = 'trained_preprocessors/preprocessor_32_FNO.pkl'
             STATIC_SPATIAL_VARS += ['x_encoding', 'y_encoding']
 
 

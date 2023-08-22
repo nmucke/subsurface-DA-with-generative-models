@@ -341,7 +341,7 @@ class ForwardGANTrainStepper(BaseTrainStepper):
                 )#.reshape(output_variables.shape)
 
         plot_time = 30
-        plot_x = 40
+        plot_x = 20
         plot_y = 10
 
         output_variables = output_variables.cpu()
