@@ -33,19 +33,24 @@ class UNet(nn.Module):
         self,
         num_dense_neurons: list,
         num_channels: int,
-        activation: str = 'gelu'
+        activation: str = 'gelu',
+        num_output_channels: int = 2,
+        grid_resolution: int = 32,
+        
     ) -> None:
         super(UNet, self).__init__()
 
         self.num_dense_neurons = num_dense_neurons
         self.num_channels = num_channels
+        self.num_output_channels = num_output_channels 
+        self.grid_resolution = grid_resolution
 
         # reverse the order of the channels
         self.num_upsample_channels = [channels for channels in num_channels[::-1]]
         self.activation = model_utils.get_activation_function(activation)
 
-        latent_height = int(64/(2**(len(num_channels)-1)))
-        latent_width = int(64/(2**(len(num_channels)-1)))
+        latent_height = int(self.grid_resolution/(2**(len(num_channels)-1)))
+        latent_width = int(self.grid_resolution/(2**(len(num_channels)-1)))
         latent_channels = num_channels[-1]
 
         # U-Net model
@@ -121,7 +126,7 @@ class UNet(nn.Module):
 
         self.final_3D_conv_layer_2 = nn.Conv3d(
             in_channels=2,
-            out_channels=2,
+            out_channels=self.num_output_channels,
             kernel_size=3,
             stride=1,
             padding=1,
