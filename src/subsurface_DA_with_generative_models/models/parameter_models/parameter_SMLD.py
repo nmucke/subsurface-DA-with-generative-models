@@ -32,12 +32,13 @@ class ParameterSMLD(nn.Module):
        return loss
     
     def sample(self, batch_size):
+       
        samples = pc_sampler(
             self.model, 
             self.marginal_prob_std_fn,
             self.diffusion_coeff_fn,
             batch_size=batch_size, 
-            num_steps=100, 
+            num_steps=25, 
             snr=0.16,                
             device='cpu',
             eps=1e-3
@@ -194,5 +195,5 @@ def pc_sampler(score_model,
             x_mean = x + (g**2)[:, None, None, None] * score_model(x, batch_time_step) * step_size
             x = x_mean + torch.sqrt(g**2 * step_size)[:, None, None, None] * torch.randn_like(x)      
         
-        # The last step does not include any noise
-        return x_mean
+    # The last step does not include any noise
+    return x_mean

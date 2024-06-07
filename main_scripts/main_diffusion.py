@@ -121,7 +121,7 @@ def main():
         
         print(f'Epoch {epoch}, loss: {loss.item()}')
 
-        if epoch % 5 == 0:
+        if epoch % 50 == 0 and epoch > 0:
             diffusion_model.eval()
             sampled_images = diffusion_model.sample(batch_size = 16)
             plt.figure()
@@ -148,4 +148,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main() 
