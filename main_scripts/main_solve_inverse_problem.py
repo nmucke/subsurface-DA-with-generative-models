@@ -30,6 +30,8 @@ torch.backends.cuda.enable_flash_sdp(enabled=True)
 torch.set_float32_matmul_precision('medium')
 torch.backends.cuda.matmul.allow_tf32 = True
 
+
+
 FORWARD_MODEL_TYPE = 'GAN'
 PARAMETER_MODEL_TYPE = 'WAE'
 #PARAMETER_MODEL_TYPE = 'WAE'
@@ -39,7 +41,7 @@ DEVICE = 'cuda'
 FOLDER = "data/results64"
 INPUT_VARS = ['Por', 'Perm'] # Porosity, Permeability, Pressure + x, y, time encodings 
 DYNAMIC_INPUT_VARS = ['gas_rate',]
-OUTPUT_VARS =  ['Pressure', 'CO_2']
+OUTPUT_VARS = ['Pressure', 'CO_2']
 
 INPUT_PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/input_preprocessor_64.pkl'
 DYNAMIC_INPUT_PREPROCESSOR_LOAD_PATH = 'trained_preprocessors/dynamic_input_preprocessor_64.pkl'

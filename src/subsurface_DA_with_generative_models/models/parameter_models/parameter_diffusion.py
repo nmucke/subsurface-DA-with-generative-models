@@ -13,7 +13,7 @@ class ParameterDiffusion(nn.Module):
             dim=64,
             dim_mults=(1, 2, 4, 8),
             flash_attn=True,
-            channels=2
+            channels=1
         )
 
         self.diffusion = GaussianDiffusion(
