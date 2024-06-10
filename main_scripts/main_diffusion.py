@@ -57,6 +57,10 @@ def main():
 
     batch_size = 8
 
+    # Normalize data
+    data = (data - data.min()) / (data.max() - data.min())
+
+
     # Load data
     # dataset = XarrayDataset(
     #     data_folder=FOLDER,
@@ -121,7 +125,7 @@ def main():
         
         print(f'Epoch {epoch}, loss: {loss.item()}')
 
-        if epoch % 50 == 0 and epoch > 0:
+        if epoch % 500 == 0 and epoch > 0:
             diffusion_model.eval()
             sampled_images = diffusion_model.sample(batch_size = 16)
             plt.figure()
